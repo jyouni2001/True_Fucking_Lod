@@ -1,0 +1,93 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8f48af77b78596d458cede31d1f64532, type: 3}
+  m_Name: Databases
+  m_EditorClassIdentifier: 
+  objectsData:
+  - <Name>k__BackingField: Lv1Floor
+    <ID>k__BackingField: 0
+    <kindIndex>k__BackingField: 0
+    IsWall: 0
+    <Size>k__BackingField: {x: 1, y: 1}
+    <Prefab>k__BackingField: {fileID: 4222678383280253326, guid: 61f9493f02cbac1468190342e6bfa3cc, type: 3}
+  - <Name>k__BackingField: Parasol_Blue
+    <ID>k__BackingField: 1
+    <kindIndex>k__BackingField: 1
+    IsWall: 0
+    <Size>k__BackingField: {x: 3, y: 3}
+    <Prefab>k__BackingField: {fileID: 4952451260224711998, guid: f571231ec60b2d441900cf0e394103f8, type: 3}
+  - <Name>k__BackingField: Parasol_Green
+    <ID>k__BackingField: 2
+    <kindIndex>k__BackingField: 1
+    IsWall: 0
+    <Size>k__BackingField: {x: 3, y: 3}
+    <Prefab>k__BackingField: {fileID: 8546872736702389067, guid: 559b6a6cac4b00e4a815b02a92551dd2, type: 3}
+  - <Name>k__BackingField: Parasol_Red
+    <ID>k__BackingField: 3
+    <kindIndex>k__BackingField: 1
+    IsWall: 0
+    <Size>k__BackingField: {x: 3, y: 3}
+    <Prefab>k__BackingField: {fileID: 492126605181440544, guid: 83a9ec598851ff44693032cd849f09f7, type: 3}
+  - <Name>k__BackingField: Wall
+    <ID>k__BackingField: 4
+    <kindIndex>k__BackingField: 2
+    IsWall: 1
+    <Size>k__BackingField: {x: 1, y: 2}
+    <Prefab>k__BackingField: {fileID: 1131916258191136379, guid: 1ae2e3d8674d4be4c82a724dc5028ab7, type: 3}
+  - <Name>k__BackingField: Cabin_Door
+    <ID>k__BackingField: 5
+    <kindIndex>k__BackingField: 2
+    IsWall: 1
+    <Size>k__BackingField: {x: 1, y: 2}
+    <Prefab>k__BackingField: {fileID: 5723797442934855889, guid: 1fd01608461d1bb41ad0248e6d0d37e5, type: 3}
+  - <Name>k__BackingField: Wall_Door
+    <ID>k__BackingField: 6
+    <kindIndex>k__BackingField: 2
+    IsWall: 1
+    <Size>k__BackingField: {x: 1, y: 2}
+    <Prefab>k__BackingField: {fileID: 5475902260803981806, guid: 7f137754d89bebf4f810bf3870326932, type: 3}
+  - <Name>k__BackingField: Counter
+    <ID>k__BackingField: 7
+    <kindIndex>k__BackingField: 1
+    IsWall: 0
+    <Size>k__BackingField: {x: 3, y: 1}
+    <Prefab>k__BackingField: {fileID: 611180667597065664, guid: 2e68333af6b5618489531abbdd8d5ab2, type: 3}
+  - <Name>k__BackingField: Rug_1
+    <ID>k__BackingField: 8
+    <kindIndex>k__BackingField: 3
+    IsWall: 0
+    <Size>k__BackingField: {x: 2, y: 2}
+    <Prefab>k__BackingField: {fileID: 7389119360703711501, guid: c2ae78a4b577371409b2d198f3b4337f, type: 3}
+  - <Name>k__BackingField: Rug_2
+    <ID>k__BackingField: 9
+    <kindIndex>k__BackingField: 3
+    IsWall: 0
+    <Size>k__BackingField: {x: 2, y: 1}
+    <Prefab>k__BackingField: {fileID: 6015227496556208911, guid: 17d6b7b61b66dea42b1617d718a6d828, type: 3}
+  - <Name>k__BackingField: WindowWall
+    <ID>k__BackingField: 10
+    <kindIndex>k__BackingField: 2
+    IsWall: 1
+    <Size>k__BackingField: {x: 1, y: 2}
+    <Prefab>k__BackingField: {fileID: 6716479437099036806, guid: 44a9fc76c103a4f4ba52ec6564ff5d24, type: 3}
+  - <Name>k__BackingField: Bed
+    <ID>k__BackingField: 11
+    <kindIndex>k__BackingField: 1
+    IsWall: 0
+    <Size>k__BackingField: {x: 1, y: 2}
+    <Prefab>k__BackingField: {fileID: 3836919220109945498, guid: 195bda83c33a43245b48a9ac91894229, type: 3}
+  - <Name>k__BackingField: TableTop
+    <ID>k__BackingField: 12
+    <kindIndex>k__BackingField: 1
+    IsWall: 0
+    <Size>k__BackingField: {x: 1, y: 1}
+    <Prefab>k__BackingField: {fileID: 1698733504407223504, guid: 2af296d4a4476114baedf7b8a609772e, type: 3}
