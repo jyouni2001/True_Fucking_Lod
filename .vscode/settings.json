@@ -56,5 +56,5 @@
         "temp/": true,
         "Temp/": true
     },
-    "dotnet.defaultSolution": "LodgingSimulator-main.sln"
+    "dotnet.defaultSolution": "True_Fucking_Lod.sln"
 }
