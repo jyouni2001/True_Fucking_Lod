@@ -48,6 +48,7 @@ public class AIAgent : MonoBehaviour
         public float size;                        // 룸 크기
         public GameObject gameObject;             // 룸 게임 오브젝트
         public string roomId;                     // 룸 고유 ID
+        public Bounds bounds;                     // 룸의 Bounds
 
         public RoomInfo(GameObject roomObj)
         {
@@ -57,6 +58,8 @@ public class AIAgent : MonoBehaviour
 
             var collider = roomObj.GetComponent<Collider>();
             size = collider != null ? collider.bounds.size.magnitude * 0.3f : 2f;
+            var roomContents = roomObj.GetComponent<RoomContents>();
+            bounds = roomContents != null ? roomContents.roomBounds : (collider != null ? collider.bounds : new Bounds(transform.position, Vector3.one * 2f));
             if (collider == null)
             {
                 Debug.LogWarning($"룸 {roomObj.name}에 Collider가 없습니다. 기본 크기(2) 사용.");
@@ -64,9 +67,35 @@ public class AIAgent : MonoBehaviour
 
             Vector3 pos = roomObj.transform.position;
             roomId = $"Room_{pos.x:F0}_{pos.z:F0}";
-            Debug.Log($"룸 ID 생성: {roomId} at {pos}");
+            Debug.Log($"룸 ID 생성: {roomId} at {pos}, Bounds: {bounds}");
         }
     }
+    // private class RoomInfo
+    // {
+    //     public Transform transform;               // 룸의 Transform
+    //     public bool isOccupied;                   // 룸 사용 여부
+    //     public float size;                        // 룸 크기
+    //     public GameObject gameObject;             // 룸 게임 오브젝트
+    //     public string roomId;                     // 룸 고유 ID
+
+    //     public RoomInfo(GameObject roomObj)
+    //     {
+    //         gameObject = roomObj;
+    //         transform = roomObj.transform;
+    //         isOccupied = false;
+
+    //         var collider = roomObj.GetComponent<Collider>();
+    //         size = collider != null ? collider.bounds.size.magnitude * 0.3f : 2f;
+    //         if (collider == null)
+    //         {
+    //             Debug.LogWarning($"룸 {roomObj.name}에 Collider가 없습니다. 기본 크기(2) 사용.");
+    //         }
+
+    //         Vector3 pos = roomObj.transform.position;
+    //         roomId = $"Room_{pos.x:F0}_{pos.z:F0}";
+    //         Debug.Log($"룸 ID 생성: {roomId} at {pos}");
+    //     }
+    // }
     #endregion
 
     #region AI 상태 열거형
@@ -335,9 +364,18 @@ public class AIAgent : MonoBehaviour
                 // 대기열 동작은 코루틴에서 처리
                 break;
             case AIState.MovingToRoom:
-                if (!agent.pathPending && agent.remainingDistance < arrivalDistance)
+                // if (!agent.pathPending && agent.remainingDistance < arrivalDistance)
+                // {
+                //     StartCoroutine(UseRoom());
+                // }
+                if (currentRoomIndex != -1 && currentRoomIndex < roomList.Count)
                 {
-                    StartCoroutine(UseRoom());
+                    Bounds roomBounds = roomList[currentRoomIndex].bounds;
+                    if (!agent.pathPending && agent.remainingDistance < arrivalDistance && roomBounds.Contains(transform.position))
+                    {
+                        Debug.Log($"AI {gameObject.name}: 룸 {currentRoomIndex + 1}번 도착 (위치: {transform.position}, Bounds Y: {roomBounds.min.y} ~ {roomBounds.max.y})");
+                        StartCoroutine(UseRoom());
+                    }
                 }
                 break;
             case AIState.UsingRoom:
