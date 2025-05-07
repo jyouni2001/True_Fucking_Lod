@@ -254,7 +254,7 @@ public class AIAgent : MonoBehaviour
 
         if (roomList.Count == 0)
         {
-            Debug.LogError($"AI {gameObject.name}: 룸을 찾을 수 없습니다! Room 태그 확인 필요.");
+            // Debug.LogError($"AI {gameObject.name}: 룸을 찾을 수 없습니다! Room 태그 확인 필요.");
         }
         else
         {

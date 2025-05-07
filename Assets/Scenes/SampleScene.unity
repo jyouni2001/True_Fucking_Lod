@@ -351,8 +351,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a39588f040fb92b47b52be5e29fc4fa6, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  layersToBake:
-    m_Bits: 114944
+  _navsurface: {fileID: 0}
+  tagsToBake: []
   agentHeight: 2
   agentRadius: 0.5
   agentSlope: 45
@@ -362,10 +362,6 @@ MonoBehaviour:
   autoUpdate: 0
   updateInterval: 1
   showDebugLogs: 0
-  navMeshData: {fileID: 0}
-  nextUpdateTime: 0
-  isInitialized: 0
-  isBaking: 0
 --- !u!4 &45947378
 Transform:
   m_ObjectHideFlags: 0
@@ -10739,7 +10735,7 @@ MonoBehaviour:
   m_Center: {x: 0, y: 2, z: 0}
   m_LayerMask:
     serializedVersion: 2
-    m_Bits: 256
+    m_Bits: 114944
   m_UseGeometry: 0
   m_DefaultArea: 0
   m_GenerateLinks: 0
@@ -10750,7 +10746,7 @@ MonoBehaviour:
   m_OverrideVoxelSize: 0
   m_VoxelSize: 0.16666667
   m_MinRegionArea: 2
-  m_NavMeshData: {fileID: 0}
+  m_NavMeshData: {fileID: 23800000, guid: 090fc23910701124cac5ae56a3c1802d, type: 2}
   m_BuildHeightMesh: 0
 --- !u!1 &1045448174
 GameObject:
