@@ -333,7 +333,7 @@ GameObject:
   - component: {fileID: 45947378}
   - component: {fileID: 45947377}
   m_Layer: 0
-  m_Name: TagNavmesh
+  m_Name: NavMesh
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -351,22 +351,21 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a39588f040fb92b47b52be5e29fc4fa6, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  tagsToBake:
-  - Counter
-  - Ground
-  - Wall
-  - Door
-  - Floor
-  - Furniture
+  layersToBake:
+    m_Bits: 114944
   agentHeight: 2
   agentRadius: 0.5
   agentSlope: 45
   agentStepHeight: 0.4
   maxJumpDistance: 2
   minJumpDistance: 0.5
-  autoUpdate: 1
+  autoUpdate: 0
   updateInterval: 1
-  showDebugLogs: 1
+  showDebugLogs: 0
+  navMeshData: {fileID: 0}
+  nextUpdateTime: 0
+  isInitialized: 0
+  isBaking: 0
 --- !u!4 &45947378
 Transform:
   m_ObjectHideFlags: 0
