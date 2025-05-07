@@ -493,7 +493,8 @@ public class RoomDetector : MonoBehaviour
         roomContents.SetRoomBounds(room.bounds);
 
         BoxCollider roomCollider = room.gameObject.AddComponent<BoxCollider>();
-        roomCollider.center = Vector3.zero;
+        // roomCollider.center = Vector3.zero;
+        roomCollider.center = new Vector3(0, 1.5f, 0);
         roomCollider.size = new Vector3(room.bounds.size.x, 3f, room.bounds.size.z);
         roomCollider.isTrigger = true;
 

@@ -351,8 +351,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a39588f040fb92b47b52be5e29fc4fa6, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _navsurface: {fileID: 0}
-  tagsToBake: []
+  _navsurface: {fileID: 1032360400}
+  tagsToBake:
+  - Ground
   agentHeight: 2
   agentRadius: 0.5
   agentSlope: 45
@@ -360,7 +361,7 @@ MonoBehaviour:
   maxJumpDistance: 2
   minJumpDistance: 0.5
   autoUpdate: 0
-  updateInterval: 1
+  updateInterval: 5
   showDebugLogs: 0
 --- !u!4 &45947378
 Transform:
