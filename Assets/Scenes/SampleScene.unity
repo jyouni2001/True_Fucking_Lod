@@ -6704,8 +6704,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5dcbea0fc6d9f214ab025e122fdccb83, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  timeMultiplier: 120
-  startingHour: 6
+  timeMultiplier: 480
+  startingHour: 8
   currentTime: 0
   useTimeEvents: 0
   eventTimes:
@@ -12102,8 +12102,14 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   aiPrefab: {fileID: 7244969928479265881, guid: d7d09039a9461474896f98f607d1c762, type: 3}
-  spawnInterval: 5
   poolSize: 200
+  minSpawner: 4
+  maxSpawner: 6
+  startHour: 9
+  endHour: 17
+  spawnInterval: 2
+  showDebugInfo: 1
+  currentActiveAIs: 0
 --- !u!4 &1207179108
 Transform:
   m_ObjectHideFlags: 0
