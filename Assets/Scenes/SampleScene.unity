@@ -10782,6 +10782,87 @@ Transform:
   - {fileID: 1120255279}
   m_Father: {fileID: 803515471}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &1053202365
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1053202368}
+  - component: {fileID: 1053202367}
+  - component: {fileID: 1053202366}
+  m_Layer: 0
+  m_Name: ReputationSystem
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1053202366
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1053202365}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b0a88f12971a6ce4a9ad0949b95a4033, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  reputationText: {fileID: 0}
+  reputationTextLegacy: {fileID: 0}
+  reputationSlider: {fileID: 0}
+  reputationPrefix: "\uBA85\uC131\uB3C4: "
+  showReputationGainAnimation: 1
+  gainColor: {r: 0, g: 1, b: 0, a: 1}
+  animationDuration: 1
+  reputationMilestones: 00000000640000002c010000f4010000e8030000d0070000b80b0000
+  milestoneNames:
+  - "\uAE38\uBC14\uB2E5"
+  - "1\uC131"
+  - "2\uC131"
+  - "3\uC131"
+  - "4\uC131"
+  - "5\uC131"
+  - "6\uC131"
+  debugSettings:
+    enableDebugButtons: 1
+    testReputationAmount: 50
+--- !u!114 &1053202367
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1053202365}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e78f788984ab4e4458f5f9ae4bc56e81, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  currentReputation: 0
+  minReputationGain: 25
+  maxReputationGain: 28
+  showDebugLogs: 1
+  reputationLogs: []
+--- !u!4 &1053202368
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1053202365}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0.073161125, y: 0.8475485, z: 7.0815353}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1096122056
 GameObject:
   m_ObjectHideFlags: 0
@@ -15457,8 +15538,8 @@ MonoBehaviour:
       m_Calls: []
   m_text: Morning
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: 2e498d1c8094910479dc3e1b768306a4, type: 2}
-  m_sharedMaterial: {fileID: 2180264, guid: 2e498d1c8094910479dc3e1b768306a4, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+  m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
@@ -21135,6 +21216,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   allRooms: []
   paymentSystem: {fileID: 2029096738}
+  reputationSystem: {fileID: 0}
   roomTag: Room
   priceMultiplier: 1
   showDebug: 0
@@ -22501,3 +22583,4 @@ SceneRoots:
   - {fileID: 2029096739}
   - {fileID: 1730146158}
   - {fileID: 539063864}
+  - {fileID: 1053202368}

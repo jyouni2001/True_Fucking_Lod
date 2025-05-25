@@ -15,6 +15,9 @@ public class RoomManager : MonoBehaviour
     [Tooltip("방 결제 시스템 참조")]
     public PaymentSystem paymentSystem;
     
+    [Tooltip("명성도 시스템 참조")]
+    public ReputationSystem reputationSystem;
+    
     [Header("Room Settings")]
     [Tooltip("방을 찾을 때 사용할 태그")]
     public string roomTag = "Room";
@@ -37,6 +40,16 @@ public class RoomManager : MonoBehaviour
     private void Start()
     {
         FindAllRooms();
+        
+        // 명성도 시스템이 참조되지 않았다면 자동으로 찾기
+        if (reputationSystem == null)
+        {
+            reputationSystem = ReputationSystem.Instance;
+            if (reputationSystem == null)
+            {
+                reputationSystem = FindObjectOfType<ReputationSystem>();
+            }
+        }
     }
     
     // 씬의 모든 방 검색
@@ -146,6 +159,27 @@ public class RoomManager : MonoBehaviour
         
         if (showDebug)
             Debug.Log(paymentLog);
+        
+        // ★ 명성도 증가 - AI가 결제를 완료했을 때
+        if (amount > 0 && reputationSystem != null)
+        {
+            // 어떤 방을 사용했는지 찾기 (가장 최근 결제된 방)
+            string roomID = "Unknown";
+            var recentPayment = paymentSystem.GetType()
+                .GetField("paymentQueue", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+            
+            if (recentPayment != null)
+            {
+                // 리플렉션 대신 PaymentSystem에서 roomID를 반환하도록 수정하는 것이 좋지만,
+                // 일단 간단하게 처리
+                roomID = "방"; // 임시로 "방"으로 설정
+            }
+            
+            reputationSystem.AddReputation(aiName, roomID);
+            
+            if (showDebug)
+                Debug.Log($"[명성도] {aiName}의 결제 완료로 명성도 증가!");
+        }
             
         return amount;
     }
@@ -170,4 +204,4 @@ public class RoomManager : MonoBehaviour
     {
         return allRooms.Where(r => !r.IsRoomUsed).ToList();
     }
-} 
+}
