@@ -1,5 +1,6 @@
 using UnityEngine;
 using System.Collections.Generic;
+using TMPro;
 
 namespace JY
 {
@@ -13,6 +14,14 @@ namespace JY
         [SerializeField] private int currentReputation = 0;
         [SerializeField] private int minReputationGain = 25;
         [SerializeField] private int maxReputationGain = 28;
+        
+        [Header("UI 설정")]
+        [SerializeField] private TextMeshProUGUI reputationText; // Inspector에서 할당
+        [SerializeField] private string textFormat = "명성도: {0} ({1})"; // {0}: 명성도, {1}: 등급
+        
+        [Header("등급 설정")]
+        [SerializeField] private int[] gradeThresholds = {0, 100, 300, 500, 1000, 2000, 3000};
+        [SerializeField] private string[] gradeNames = {"길바닥", "1성", "2성", "3성", "4성", "5성", "6성"};
         
         [Header("디버그")]
         [SerializeField] private bool showDebugLogs = true;
@@ -41,6 +50,12 @@ namespace JY
             }
         }
         
+        void Start()
+        {
+            // 시작할 때 UI 업데이트
+            UpdateUI();
+        }
+        
         /// <summary>
         /// AI가 방 사용을 완료했을 때 명성도를 증가시킵니다.
         /// </summary>
@@ -61,6 +76,9 @@ namespace JY
             {
                 Debug.Log($"[명성도 시스템] {logMessage}");
             }
+            
+            // UI 업데이트
+            UpdateUI();
             
             // 이벤트 발생
             OnReputationChanged?.Invoke(currentReputation);
@@ -96,7 +114,60 @@ namespace JY
                 Debug.Log($"[명성도 시스템] 명성도 직접 설정: {oldReputation} -> {currentReputation}");
             }
             
+            // UI 업데이트
+            UpdateUI();
+            
             OnReputationChanged?.Invoke(currentReputation);
+        }
+        
+        /// <summary>
+        /// UI 텍스트를 업데이트합니다.
+        /// </summary>
+        private void UpdateUI()
+        {
+            if (reputationText != null)
+            {
+                string grade = GetCurrentGrade();
+                reputationText.text = string.Format(textFormat, currentReputation, grade);
+            }
+        }
+        
+        /// <summary>
+        /// 현재 명성도에 따른 등급을 반환합니다.
+        /// </summary>
+        /// <returns>현재 등급 이름</returns>
+        public string GetCurrentGrade()
+        {
+            for (int i = gradeThresholds.Length - 1; i >= 0; i--)
+            {
+                if (currentReputation >= gradeThresholds[i])
+                {
+                    if (i < gradeNames.Length)
+                    {
+                        return gradeNames[i];
+                    }
+                    break;
+                }
+            }
+            
+            // 기본값 (첫 번째 등급)
+            return gradeNames.Length > 0 ? gradeNames[0] : "등급 없음";
+        }
+        
+        /// <summary>
+        /// 다음 등급까지 필요한 명성도를 반환합니다.
+        /// </summary>
+        /// <returns>다음 등급까지 필요한 명성도 (최고 등급이면 -1)</returns>
+        public int GetReputationToNextGrade()
+        {
+            for (int i = 0; i < gradeThresholds.Length; i++)
+            {
+                if (currentReputation < gradeThresholds[i])
+                {
+                    return gradeThresholds[i] - currentReputation;
+                }
+            }
+            return -1; // 이미 최고 등급
         }
         
         /// <summary>
