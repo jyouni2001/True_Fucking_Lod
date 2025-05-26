@@ -4542,7 +4542,7 @@ Light:
   serializedVersion: 11
   m_Type: 1
   m_Color: {r: 1, g: 1, b: 1, a: 1}
-  m_Intensity: 2.180998
+  m_Intensity: 0.1599997
   m_Range: 10
   m_SpotAngle: 30
   m_InnerSpotAngle: 21.80208
@@ -4551,7 +4551,7 @@ Light:
     m_Type: 2
     m_Resolution: -1
     m_CustomResolution: -1
-    m_Strength: 0.8723993
+    m_Strength: 0.99999815
     m_Bias: 0.05
     m_NormalBias: 0.4
     m_NearPlane: 0.2
@@ -4604,13 +4604,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 410087039}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.33682406, y: -0.16317599, z: 0.059391193, w: 0.92541665}
+  m_LocalRotation: {x: -0.6884179, y: 0, z: 0, w: -0.7253142}
   m_LocalPosition: {x: 0, y: 30, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 803515471}
-  m_LocalEulerAnglesHint: {x: 40, y: -20, z: 0}
+  m_LocalEulerAnglesHint: {x: -272.99, y: 0, z: 0}
 --- !u!114 &410087042
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -4658,9 +4658,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fd543c84a5b59c541b325244b881a706, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  rotationsPerHour: 100
+  rotationsPerHour: 105.5
   automaticLightIntensity: 1
-  maximumLightIntensity: 2.5
+  maximumLightIntensity: 0.16
 --- !u!1 &420632521
 GameObject:
   m_ObjectHideFlags: 0
@@ -6722,7 +6722,7 @@ Transform:
   m_GameObject: {fileID: 539063861}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 23.109657, y: 24.159124, z: -22.052252}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -13057,6 +13057,110 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1254137645}
   m_CullTransparentMesh: 1
+--- !u!1 &1261526994
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1261526996}
+  - component: {fileID: 1261526995}
+  m_Layer: 0
+  m_Name: SunMoonController
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1261526995
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1261526994}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e046aca88a96b6e44b4be95e956cea9d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  sunTransform: {fileID: 410087041}
+  moonTransform: {fileID: 212501233}
+  sunLight: {fileID: 410087040}
+  moonLight: {fileID: 212501236}
+  rotationRadius: 100
+  rotationCenter: {x: 0, y: 0, z: 0}
+  smoothRotation: 1
+  rotationSpeed: 2
+  autoControlLight: 1
+  sunIntensityCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 1
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  moonIntensityCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 1
+      value: 0.3
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  maxSunIntensity: 1.5
+  maxMoonIntensity: 0.5
+  showDebugInfo: 0
+--- !u!4 &1261526996
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1261526994}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1262887341
 GameObject:
   m_ObjectHideFlags: 0
@@ -22700,3 +22804,4 @@ SceneRoots:
   - {fileID: 1730146158}
   - {fileID: 539063864}
   - {fileID: 1053202368}
+  - {fileID: 1261526996}
