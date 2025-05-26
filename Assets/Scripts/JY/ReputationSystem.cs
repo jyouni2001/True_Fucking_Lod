@@ -17,11 +17,11 @@ namespace JY
         
         [Header("UI 설정")]
         [SerializeField] private TextMeshProUGUI reputationText; // Inspector에서 할당
-        [SerializeField] private string textFormat = "명성도: {0} ({1})"; // {0}: 명성도, {1}: 등급
+        [SerializeField] private string textFormat = "Grade: {0} {1}"; // {0}: 명성도, {1}: 등급
         
         [Header("등급 설정")]
         [SerializeField] private int[] gradeThresholds = {0, 100, 300, 500, 1000, 2000, 3000};
-        [SerializeField] private string[] gradeNames = {"길바닥", "1성", "2성", "3성", "4성", "5성", "6성"};
+        [SerializeField] private string[] gradeNames = {"Ground", "Tier1", "Tier2", "Tier3", "Tier4", "Tier5", "Tier6"};
         
         [Header("디버그")]
         [SerializeField] private bool showDebugLogs = true;

@@ -106,16 +106,16 @@ public class TimeManager : MonoBehaviour
             switch (newPhase)
             {
                 case TimeSystem.DayPhase.Morning:
-                    phaseText.text = "아침";
+                    phaseText.text = "Morning";
                     break;
                 case TimeSystem.DayPhase.Afternoon:
-                    phaseText.text = "오후";
+                    phaseText.text = "Afternoon";
                     break;
                 case TimeSystem.DayPhase.Evening:
-                    phaseText.text = "저녁";
+                    phaseText.text = "Dinner";
                     break;
                 case TimeSystem.DayPhase.Night:
-                    phaseText.text = "밤";
+                    phaseText.text = "Night";
                     break;
             }
         }

@@ -6704,7 +6704,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5dcbea0fc6d9f214ab025e122fdccb83, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  timeMultiplier: 480
+  timeMultiplier: 120
   startingHour: 8
   currentTime: 0
   useTimeEvents: 0
@@ -10116,8 +10116,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 132, y: 455}
-  m_SizeDelta: {x: 200, y: 50}
+  m_AnchoredPosition: {x: 277.83765, y: 455}
+  m_SizeDelta: {x: 491.6752, y: 50}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &987678032
 MonoBehaviour:
@@ -10172,7 +10172,7 @@ MonoBehaviour:
   m_enableAutoSizing: 0
   m_fontSizeMin: 18
   m_fontSizeMax: 72
-  m_fontStyle: 0
+  m_fontStyle: 1
   m_HorizontalAlignment: 1
   m_VerticalAlignment: 256
   m_textAlignment: 65535
@@ -10948,20 +10948,20 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e78f788984ab4e4458f5f9ae4bc56e81, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  currentReputation: 0
+  currentReputation: 500
   minReputationGain: 25
   maxReputationGain: 28
   reputationText: {fileID: 987678032}
-  textFormat: "\uBA85\uC131\uB3C4: {0} ({1})"
+  textFormat: 'Reputation :   {0}     {1}'
   gradeThresholds: 00000000640000002c010000f4010000e8030000d0070000b80b0000
   gradeNames:
-  - "\uAE38\uBC14\uB2E5"
-  - "1\uC131"
-  - "2\uC131"
-  - "3\uC131"
-  - "4\uC131"
-  - "5\uC131"
-  - "6\uC131"
+  - Ground
+  - Tier1
+  - Tier2
+  - Tier3
+  - Tier4
+  - Tier5
+  - Tier6
   showDebugLogs: 1
   reputationLogs: []
 --- !u!4 &1053202368
