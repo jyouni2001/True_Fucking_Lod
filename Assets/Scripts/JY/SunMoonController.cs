@@ -246,7 +246,7 @@ public class SunMoonController : MonoBehaviour
         {
             // 해가 지평선 위에 있을 때만 빛을 켬
             bool sunVisible = currentSunAngle > -180f && currentSunAngle < 180f;
-            sunLight.enabled = sunVisible;
+            // sunLight.enabled = sunVisible;
             
             if (sunVisible)
             {
@@ -263,7 +263,7 @@ public class SunMoonController : MonoBehaviour
         {
             // 달이 지평선 위에 있을 때만 빛을 켬
             bool moonVisible = currentMoonAngle > -180f && currentMoonAngle < 180f;
-            moonLight.enabled = moonVisible;
+            // moonLight.enabled = moonVisible;
             
             if (moonVisible)
             {
