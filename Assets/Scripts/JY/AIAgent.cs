@@ -4,6 +4,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using JY;
+using UnityEngine.Animations;
 
 public interface IRoomDetector
 {
@@ -36,6 +37,8 @@ public class AIAgent : MonoBehaviour
     private Coroutine wanderingCoroutine;         // 배회 코루틴 참조
     private Coroutine roomUseCoroutine;           // 방 사용 코루틴 참조
     private Coroutine roomWanderingCoroutine;     // 방 내부 배회 코루틴 참조
+
+    private Coroutine useWanderingCoroutine;  // 방 외부 배회 코루틴 참조
     private int maxRetries = 3;                   // 위치 찾기 최대 시도 횟수
 
     [SerializeField] private CounterManager counterManager; // CounterManager 참조
@@ -83,6 +86,7 @@ public class AIAgent : MonoBehaviour
         WaitingInQueue,      // 대기열에서 대기
         MovingToRoom,        // 배정된 방으로 이동
         UsingRoom,           // 방 사용
+        UseWandering,        // 방 사용 중 배회
         ReportingRoom,       // 방 사용 완료 보고
         ReturningToSpawn,    // 스폰 지점으로 복귀 (디스폰)
         RoomWandering,       // 방 내부 배회
@@ -280,7 +284,7 @@ public class AIAgent : MonoBehaviour
         int minute = timeSystem.CurrentMinute;
 
         // 17:00에 방 사용 중이 아닌 에이전트 디스폰
-        if (hour == 17 && minute == 0 && currentState != AIState.UsingRoom)
+        if (hour == 17 && minute == 0 && currentState != AIState.UsingRoom && currentState != AIState.UseWandering && currentState != AIState.RoomWandering && currentRoomIndex == -1)
         {
             TransitionToState(AIState.ReturningToSpawn);
             Debug.Log($"AI {gameObject.name}: 17:00, 방 사용 중 아님, 디스폰.");
@@ -340,8 +344,8 @@ public class AIAgent : MonoBehaviour
                 float randomValue = Random.value;
                 if (randomValue < 0.5f)
                 {
-                    TransitionToState(AIState.Wandering);
-                    Debug.Log($"AI {gameObject.name}: 11~17시, 방 있음, 외부 배회 (50%).");
+                    TransitionToState(AIState.UseWandering);
+                    Debug.Log($"AI {gameObject.name}: 11~17시, 방 있음, 방 외부 배회 (50%).");
                 }
                 else
                 {
@@ -358,7 +362,7 @@ public class AIAgent : MonoBehaviour
                 float randomValue = Random.value;
                 if (randomValue < 0.5f)
                 {
-                    TransitionToState(AIState.Wandering);
+                    TransitionToState(AIState.UseWandering);
                     Debug.Log($"AI {gameObject.name}: 17~0시, 방 있음, 외부 배회 (50%).");
                 }
                 else
@@ -426,7 +430,8 @@ public class AIAgent : MonoBehaviour
             int minute = timeSystem.CurrentMinute;
 
             // 17:00에 방 사용 중이 아닌 에이전트 디스폰
-            if (hour == 17 && minute == 0 && currentState != AIState.UsingRoom && currentState != AIState.ReturningToSpawn)
+            if (hour == 17 && minute == 0 && currentState != AIState.UsingRoom && currentState != AIState.UseWandering &&
+            currentState != AIState.RoomWandering && currentState != AIState.ReturningToSpawn && currentRoomIndex == -1)
             {
                 TransitionToState(AIState.ReturningToSpawn);
                 Debug.Log($"AI {gameObject.name}: 17:00, 방 사용 중 아님, 강제 디스폰.");
@@ -435,16 +440,18 @@ public class AIAgent : MonoBehaviour
 
             // 매 정시 행동 초기화 (11:00~16:00)
             if (hour >= 11 && hour < 17 && minute == 0 && hour != lastBehaviorUpdateHour &&
-                currentState != AIState.UsingRoom && currentState != AIState.WaitingInQueue &&
-                currentState != AIState.MovingToRoom && currentState != AIState.ReportingRoom)
+                currentState != AIState.UsingRoom && currentState != AIState.UseWandering &&
+                currentState != AIState.WaitingInQueue && currentState != AIState.MovingToRoom && 
+                currentState != AIState.ReportingRoom)
             {
                 DetermineBehaviorByTime();
             }
 
             // 시간대 전환 시 행동 재결정
             if ((hour == 0 || hour == 9 || hour == 11 || hour == 17) && minute == 0 &&
-                currentState != AIState.UsingRoom && currentState != AIState.WaitingInQueue &&
-                currentState != AIState.MovingToRoom && currentState != AIState.ReportingRoom)
+                currentState != AIState.UsingRoom && currentState != AIState.UseWandering &&
+                currentState != AIState.WaitingInQueue && currentState != AIState.MovingToRoom && 
+                currentState != AIState.ReportingRoom)
             {
                 DetermineBehaviorByTime();
             }
@@ -649,6 +656,9 @@ public class AIAgent : MonoBehaviour
             case AIState.RoomWandering:
                 roomWanderingCoroutine = StartCoroutine(RoomWanderingBehavior());
                 break;
+            case AIState.UseWandering:
+                useWanderingCoroutine = StartCoroutine(UseWanderingBehavior());
+                break;
         }
     }
 
@@ -665,6 +675,7 @@ public class AIAgent : MonoBehaviour
             AIState.ReturningToSpawn => "퇴장 중",
             AIState.RoomWandering => $"룸 {currentRoomIndex + 1}번 내부 배회 중",
             AIState.ReportingRoomQueue => "사용 완료 보고 대기열로 이동 중",
+            AIState.UseWandering => $"룸 {currentRoomIndex + 1}번 사용 중 외부 배회",
             _ => "알 수 없는 상태"
         };
     }
@@ -689,7 +700,8 @@ public class AIAgent : MonoBehaviour
             roomManager.ReportRoomUsage(gameObject.name, room);
         }
 
-        TransitionToState(AIState.UsingRoom);
+        // TransitionToState(AIState.UsingRoom);
+        TransitionToState(AIState.UseWandering);
 
         Debug.Log($"AI {gameObject.name}: 룸 {currentRoomIndex + 1}번 사용 시작.");
         while (elapsedTime < roomUseTime && agent.isOnNavMesh)
@@ -763,6 +775,29 @@ public class AIAgent : MonoBehaviour
         }
 
         DetermineBehaviorByTime();
+    }
+
+    private IEnumerator UseWanderingBehavior()
+    {
+        if (currentRoomIndex < 0 || currentRoomIndex >= roomList.Count)
+        {
+            Debug.LogError($"AI {gameObject.name}: 잘못된 룸 인덱스 {currentRoomIndex}.");
+            DetermineBehaviorByTime();
+            yield break;
+        }
+
+        while (currentState == AIState.UseWandering && agent.isOnNavMesh)
+        {
+            Vector3 roomCenter = roomList[currentRoomIndex].transform.position;
+            float roomSize = roomList[currentRoomIndex].size;
+            if (TryGetValidPosition(roomCenter, roomSize, NavMesh.AllAreas, out Vector3 targetPos))
+            {
+                agent.SetDestination(targetPos);
+            }
+
+            float waitTime = Random.Range(3f, 8f);
+            yield return new WaitForSeconds(waitTime);
+        }
     }
 
     private IEnumerator RoomWanderingBehavior()
@@ -885,6 +920,11 @@ public class AIAgent : MonoBehaviour
         {
             StopCoroutine(roomWanderingCoroutine);
             roomWanderingCoroutine = null;
+        }
+        if (useWanderingCoroutine != null) // 새로 추가
+        {
+            StopCoroutine(useWanderingCoroutine);
+            useWanderingCoroutine = null;
         }
     }
 

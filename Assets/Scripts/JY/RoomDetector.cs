@@ -278,7 +278,7 @@ public class RoomDetector : MonoBehaviour
         while (queue.Count > 0)
         {
             Vector3Int current = queue.Dequeue();
-            
+
             if (!roomGrid.TryGetValue(current, out RoomCell currentCell))
             {
                 DebugLog($"셀 없음: {current}");
@@ -295,7 +295,7 @@ public class RoomDetector : MonoBehaviour
                 foreach (var dir in directions)
                 {
                     Vector3Int neighbor = current + dir;
-                    
+
                     // 이웃 셀이 문인지 확인
                     bool isDoorBetween = false;
                     if (roomGrid.TryGetValue(neighbor, out RoomCell neighborCell))
@@ -381,6 +381,70 @@ public class RoomDetector : MonoBehaviour
 
         DebugLog("유효한 방이 감지되지 않음");
         return null;
+    }
+    
+
+    // 추가: 벽으로 둘러싸인 영역을 더 정확히 감지하는 헬퍼 메서드
+    private bool IsEnclosedByWalls(Vector3Int position, HashSet<Vector3Int> roomCells)
+    {
+        Vector3Int[] directions = new Vector3Int[]
+        {
+            new Vector3Int(1, 0, 0), new Vector3Int(-1, 0, 0),
+            new Vector3Int(0, 0, 1), new Vector3Int(0, 0, -1)
+        };
+
+        int wallCount = 0;
+        int doorCount = 0;
+
+        foreach (var dir in directions)
+        {
+            Vector3Int neighbor = position + dir;
+            
+            if (roomGrid.TryGetValue(neighbor, out RoomCell neighborCell))
+            {
+                if (neighborCell.isWall) wallCount++;
+                if (neighborCell.isDoor) doorCount++;
+            }
+            else
+            {
+                // 그리드 외부도 벽으로 간주
+                wallCount++;
+            }
+        }
+
+        // 최소 3면이 벽으로 둘러싸여 있고, 문이 있으면 방으로 인정
+        return wallCount >= 2 && (wallCount + doorCount) >= 3;
+    }
+
+    // 방 검증을 더 엄격하게 하는 메서드 추가
+    private bool ValidateRoomStructure(RoomInfo room)
+    {
+        if (room.floorCells.Count == 0) return false;
+        
+        // 방의 최소 크기 확인 (예: 2x2 이상)
+        int minX = room.floorCells.Min(c => c.x);
+        int maxX = room.floorCells.Max(c => c.x);
+        int minZ = room.floorCells.Min(c => c.z);
+        int maxZ = room.floorCells.Max(c => c.z);
+        
+        int width = maxX - minX + 1;
+        int height = maxZ - minZ + 1;
+        
+        // 최소 크기 체크
+        if (width < 2 || height < 2) return false;
+        
+        // 벽으로 둘러싸인 정도 확인
+        int enclosedCells = 0;
+        foreach (var floorCell in room.floorCells)
+        {
+            if (IsEnclosedByWalls(floorCell, new HashSet<Vector3Int>(room.floorCells)))
+            {
+                enclosedCells++;
+            }
+        }
+        
+        // 최소 50% 이상의 바닥이 벽으로 둘러싸여 있어야 함
+        return (float)enclosedCells / room.floorCells.Count >= 0.5f;
     }
 
     private bool AreRoomListsEqual(List<RoomInfo> list1, List<RoomInfo> list2)

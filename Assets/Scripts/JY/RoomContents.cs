@@ -34,11 +34,13 @@ namespace JY
         {
             roomBounds = bounds;
 
-            // Y축 높이를 5로 조정
+            // Y축 높이를 4로 조정
             float roomHeight = 4f; // 원하는 Y축 높이
             Vector3 adjustedMin = roomBounds.min;
             Vector3 adjustedMax = roomBounds.max;
-            adjustedMin.y = 0f; // 바닥 높이
+
+            float originalYMin = bounds.min.y;
+            adjustedMin.y = originalYMin; // 바닥 높이
             adjustedMax.y = roomHeight; // 천장 높이
             
             roomBounds.SetMinMax(adjustedMin, adjustedMax);
@@ -104,7 +106,7 @@ namespace JY
         private void OnDrawGizmos()
         {
             // 방의 범위를 시각적으로 표시
-            Gizmos.color = isRoomUsed ? Color.red : Color.green;
+            Gizmos.color = isRoomUsed ? Color.red : Color.yellow;
             Gizmos.DrawWireCube(roomBounds.center, roomBounds.size);
         }
     }
