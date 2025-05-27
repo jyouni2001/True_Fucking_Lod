@@ -6705,7 +6705,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   timeMultiplier: 120
-  startingHour: 8
+  startingHour: 9
   currentTime: 0
   useTimeEvents: 0
   eventTimes:

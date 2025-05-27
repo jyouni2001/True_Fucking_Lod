@@ -33,6 +33,16 @@ namespace JY
         public void SetRoomBounds(Bounds bounds)
         {
             roomBounds = bounds;
+
+            // Y축 높이를 5로 조정
+            float roomHeight = 4f; // 원하는 Y축 높이
+            Vector3 adjustedMin = roomBounds.min;
+            Vector3 adjustedMax = roomBounds.max;
+            adjustedMin.y = 0f; // 바닥 높이
+            adjustedMax.y = roomHeight; // 천장 높이
+            
+            roomBounds.SetMinMax(adjustedMin, adjustedMax);
+
             UpdateRoomContents();
             Debug.Log($"방 {roomID}의 범위가 업데이트되었습니다. 중심: {bounds.center}, 크기: {bounds.size}");
         }
