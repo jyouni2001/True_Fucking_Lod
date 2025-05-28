@@ -30,24 +30,27 @@ public class ObjectsDatabaseSO : ScriptableObject
 [Serializable]
 public class ObjectData
 {
-    [field : SerializeField]
+    [field: SerializeField]
     public string Name { get; private set; }
-    
-    [field : SerializeField]
+
+    [field: SerializeField]
     public int ID { get; private set; }
 
-    [field : SerializeField]
+    [field: SerializeField]
     public int kindIndex { get; private set; }
 
     [field: SerializeField]
-    public bool IsWall; 
+    public bool IsWall;
 
-    [field: SerializeField] 
+    [field: SerializeField]
     public Vector2Int Size { get; private set; } = Vector2Int.one;
-    
-    [field : SerializeField]
+
+    [field: SerializeField]
     public GameObject Prefab { get; private set; }
 
     [field: SerializeField]
     public int BasePrice { get; private set; } // 정윤
+    
+    [field: SerializeField]
+    public int BaseReputation { get; private set; } // 명성도 추가
 }

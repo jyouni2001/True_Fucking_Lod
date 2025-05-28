@@ -149,7 +149,7 @@ public class AIAgent : MonoBehaviour
             }
         }
 
-        if (NavMesh.GetAreaFromName("Ground") == 0)
+        if (NavMesh.GetAreaFromName("Ground") == -1)
         {
             Debug.LogWarning($"AI {gameObject.name}: Ground NavMesh 영역이 설정되지 않았습니다.");
         }
@@ -256,7 +256,8 @@ public class AIAgent : MonoBehaviour
                 }
             }
 
-            if (updatedRoomList.Count > 0)
+            // 수정: 업데이트 조건 개선
+            if (updatedRoomList.Count > 0 && (isUpdated || updatedRoomList.Count != roomList.Count))
             {
                 roomList = updatedRoomList;
                 Debug.Log($"룸 리스트 업데이트 완료. 총 룸 수: {roomList.Count}");
@@ -430,27 +431,39 @@ public class AIAgent : MonoBehaviour
             int minute = timeSystem.CurrentMinute;
 
             // 17:00에 방 사용 중이 아닌 에이전트 디스폰
-            if (hour == 17 && minute == 0 && currentState != AIState.UsingRoom && currentState != AIState.UseWandering &&
-            currentState != AIState.RoomWandering && currentState != AIState.ReturningToSpawn && currentRoomIndex == -1)
+            if (hour == 17 &&
+                minute == 0 &&
+                currentState != AIState.UsingRoom &&
+                currentState != AIState.UseWandering &&
+                currentState != AIState.RoomWandering &&
+                currentState != AIState.ReturningToSpawn &&
+                currentRoomIndex == -1)
             {
                 TransitionToState(AIState.ReturningToSpawn);
                 Debug.Log($"AI {gameObject.name}: 17:00, 방 사용 중 아님, 강제 디스폰.");
                 return;
             }
-
+            
+            // 시간대별 행동 재결정 (조건 통합)
+            bool shouldRedetermineBehavior = false;
+            
             // 매 정시 행동 초기화 (11:00~16:00)
-            if (hour >= 11 && hour < 17 && minute == 0 && hour != lastBehaviorUpdateHour &&
-                currentState != AIState.UsingRoom && currentState != AIState.UseWandering &&
-                currentState != AIState.WaitingInQueue && currentState != AIState.MovingToRoom && 
-                currentState != AIState.ReportingRoom)
+            if (hour >= 11 && hour < 17 && minute == 0 && hour != lastBehaviorUpdateHour)
             {
-                DetermineBehaviorByTime();
+                shouldRedetermineBehavior = true;
+            }
+            
+            // 시간대 전환 시 행동 재결정
+            if ((hour == 0 || hour == 9 || hour == 11 || hour == 17) && minute == 0 && hour != lastBehaviorUpdateHour)
+            {
+                shouldRedetermineBehavior = true;
             }
 
-            // 시간대 전환 시 행동 재결정
-            if ((hour == 0 || hour == 9 || hour == 11 || hour == 17) && minute == 0 &&
-                currentState != AIState.UsingRoom && currentState != AIState.UseWandering &&
-                currentState != AIState.WaitingInQueue && currentState != AIState.MovingToRoom && 
+            if (shouldRedetermineBehavior && 
+                currentState != AIState.UsingRoom && 
+                currentState != AIState.UseWandering &&
+                currentState != AIState.WaitingInQueue && 
+                currentState != AIState.MovingToRoom && 
                 currentState != AIState.ReportingRoom)
             {
                 DetermineBehaviorByTime();
@@ -625,6 +638,10 @@ public class AIAgent : MonoBehaviour
     #region 상태 전환
     private void TransitionToState(AIState newState)
     {
+        if (currentState == newState) return;
+    
+        AIState previousState = currentState;
+
         CleanupCoroutines();
         if (currentState == AIState.UsingRoom)
         {
@@ -700,7 +717,8 @@ public class AIAgent : MonoBehaviour
             roomManager.ReportRoomUsage(gameObject.name, room);
         }
 
-        // TransitionToState(AIState.UsingRoom);
+        TransitionToState(AIState.UsingRoom);
+        yield return new WaitForSeconds(0.1f); // 상태 안정화
         TransitionToState(AIState.UseWandering);
 
         Debug.Log($"AI {gameObject.name}: 룸 {currentRoomIndex + 1}번 사용 시작.");
@@ -720,16 +738,18 @@ public class AIAgent : MonoBehaviour
         int reportingRoomIndex = currentRoomIndex;
         Debug.Log($"AI {gameObject.name}: 룸 {reportingRoomIndex + 1}번 사용 완료 보고.");
 
+        // 룸 정리
         lock (lockObject)
         {
             if (reportingRoomIndex >= 0 && reportingRoomIndex < roomList.Count)
             {
                 roomList[reportingRoomIndex].isOccupied = false;
-                currentRoomIndex = -1;
                 Debug.Log($"룸 {reportingRoomIndex + 1}번 비워짐.");
             }
+            currentRoomIndex = -1; // 룸 인덱스 초기화
         }
 
+        // 결재 처리
         var roomManager = FindObjectOfType<RoomManager>();
         if (roomManager != null)
         {
@@ -737,13 +757,17 @@ public class AIAgent : MonoBehaviour
             Debug.Log($"AI {gameObject.name}: 룸 결제 완료, 금액: {amount}원");
         }
 
+        // 수정: 9-11시 로직 개선
         if (timeSystem.CurrentHour >= 9 && timeSystem.CurrentHour < 11)
         {
             if (counterManager != null && counterPosition != null)
             {
+                // 잠시 배회 후 대기열로 이동 (방이 없는 상태에서도 자연스럽게)
                 TransitionToState(AIState.Wandering);
                 wanderingCoroutine = StartCoroutine(WanderingBehavior());
-                yield return new WaitForSeconds(Random.Range(5f, 10f));
+                yield return new WaitForSeconds(Random.Range(3f, 7f)); // 대기 시간 단축
+                
+                // 대기열로 이동 (새로운 방 배정을 위해)
                 TransitionToState(AIState.MovingToQueue);
             }
             else
@@ -833,13 +857,15 @@ public class AIAgent : MonoBehaviour
     {
         Vector3 randomPoint = transform.position + Random.insideUnitSphere * 10f;
         int groundMask = NavMesh.GetAreaFromName("Ground");
-        if (groundMask == 0)
+
+        if (groundMask == -1)
         {
             Debug.LogError($"AI {gameObject.name}: Ground NavMesh 영역 설정되지 않음.");
             return;
         }
 
-        if (NavMesh.SamplePosition(randomPoint, out NavMeshHit hit, 10f, groundMask))
+        int areaMask = 1 << groundMask;
+        if (NavMesh.SamplePosition(randomPoint, out NavMeshHit hit, 10f, areaMask))
         {
             agent.SetDestination(hit.position);
         }

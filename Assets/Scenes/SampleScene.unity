@@ -10949,8 +10949,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   currentReputation: 500
-  minReputationGain: 25
-  maxReputationGain: 28
   reputationText: {fileID: 987678032}
   textFormat: 'Reputation :   {0}     {1}'
   gradeThresholds: 00000000640000002c010000f4010000e8030000d0070000b80b0000
@@ -13073,7 +13071,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!114 &1261526995
 MonoBehaviour:
   m_ObjectHideFlags: 0
