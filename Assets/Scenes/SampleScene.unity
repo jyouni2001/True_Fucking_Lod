@@ -13088,10 +13088,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   sunTransform: {fileID: 410087041}
   moonTransform: {fileID: 212501233}
+  sunLensFlare: {fileID: 0}
+  moonLensFlare: {fileID: 0}
   sunLight: {fileID: 410087040}
   moonLight: {fileID: 212501236}
   rotationRadius: 100
-  rotationCenter: {x: 0, y: 0, z: 0}
+  rotationCenter: {x: 0, y: -10, z: 0}
   smoothRotation: 1
   rotationSpeed: 2
   autoControlLight: 1
@@ -13146,6 +13148,8 @@ MonoBehaviour:
   maxSunIntensity: 1.5
   maxMoonIntensity: 0.5
   showDebugInfo: 0
+  currentSunAngle: 0
+  currentMoonAngle: 0
 --- !u!4 &1261526996
 Transform:
   m_ObjectHideFlags: 0

@@ -260,7 +260,7 @@ public class SunMoonController : MonoBehaviour
         if (sunLight != null)
         {
             // 해가 지평선 위에 있을 때만 빛을 켬
-            bool sunVisible = currentSunAngle > -180f && currentSunAngle < 180f;
+            bool sunVisible = currentSunAngle > 0f && currentSunAngle < 180f;
             //sunLight.enabled = sunVisible;
             
             if (sunVisible)
@@ -282,7 +282,7 @@ public class SunMoonController : MonoBehaviour
         if (moonLight != null)
         {
             // 달이 지평선 위에 있을 때만 빛을 켬
-            bool moonVisible = currentMoonAngle > -180f && currentMoonAngle < 180f;
+            bool moonVisible = currentMoonAngle > 0f && currentMoonAngle < 180f;
             // Debug.Log($"현재 달 각도 : {currentMoonAngle}");
             // moonLight.enabled = moonVisible;
 
