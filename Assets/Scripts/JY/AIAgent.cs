@@ -858,7 +858,7 @@ public class AIAgent : MonoBehaviour
         Vector3 randomPoint = transform.position + Random.insideUnitSphere * 10f;
         int groundMask = NavMesh.GetAreaFromName("Ground");
 
-        if (groundMask == -1)
+        if (groundMask == 0)
         {
             Debug.LogError($"AI {gameObject.name}: Ground NavMesh 영역 설정되지 않음.");
             return;
