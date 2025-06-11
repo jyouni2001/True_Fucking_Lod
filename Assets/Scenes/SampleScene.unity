@@ -10949,8 +10949,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   currentReputation: 500
-  minReputationGain: 25
-  maxReputationGain: 28
   reputationText: {fileID: 987678032}
   textFormat: 'Reputation :   {0}     {1}'
   gradeThresholds: 00000000640000002c010000f4010000e8030000d0070000b80b0000
@@ -17811,6 +17809,58 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1693710898}
   m_CullTransparentMesh: 1
+--- !u!1 &1696679805
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1696679807}
+  - component: {fileID: 1696679806}
+  m_Layer: 0
+  m_Name: shipsaki
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1696679806
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1696679805}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4622fcb65654acd41a1c96e413b5d36e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  enableShipSystem: 1
+  shipPrefab: {fileID: 0}
+  maxShipCount: 5
+  spawnTimeBeforeArrival: 5
+  dockingDuration: 30
+  shipRoutes: []
+  showDebugLogs: 1
+  showGizmos: 1
+--- !u!4 &1696679807
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1696679805}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 23.056765, y: 16.32086, z: 14.35774}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1709331569
 GameObject:
   m_ObjectHideFlags: 0
@@ -21468,6 +21518,11 @@ MonoBehaviour:
   roomElementsLayer:
     serializedVersion: 2
     m_Bits: 0
+  floorHeightTolerance: 1
+  floorDetectionOffset: -0.5
+  enableSunbedRooms: 1
+  sunbedRoomPrice: 100
+  sunbedRoomReputation: 50
 --- !u!114 &2029096738
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -22809,3 +22864,4 @@ SceneRoots:
   - {fileID: 539063864}
   - {fileID: 1053202368}
   - {fileID: 1261526996}
+  - {fileID: 1696679807}

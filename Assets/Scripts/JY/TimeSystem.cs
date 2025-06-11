@@ -301,6 +301,15 @@ public class TimeSystem : MonoBehaviour
             timeMultiplier = multiplier;
         }
     }
+    
+    /// <summary>
+    /// 현재 시간을 분 단위로 반환 (0-1439, 하루는 1440분)
+    /// </summary>
+    /// <returns>현재 시간의 분 단위 값</returns>
+    public int GetCurrentTimeInMinutes()
+    {
+        return CurrentHour * 60 + CurrentMinute;
+    }
 
     #endregion
 }
