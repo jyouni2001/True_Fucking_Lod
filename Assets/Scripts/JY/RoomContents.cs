@@ -15,6 +15,11 @@ namespace JY
         [Header("Room Bounds")]
         public Bounds roomBounds;
         
+        [Header("Sunbed Room Settings")]
+        public bool isSunbedRoom = false; // Sunbed 방 여부
+        public float fixedPrice = 0f; // 고정 가격
+        public float fixedReputation = 0f; // 고정 명성도
+        
         [Header("Furniture")]
         private List<FurnitureID> furnitureList = new List<FurnitureID>();
         
@@ -49,9 +54,33 @@ namespace JY
             UpdateRoomContents();
             Debug.Log($"방 {roomID}의 범위가 업데이트되었습니다. 중심: {bounds.center}, 크기: {bounds.size}");
         }
+
+        // Sunbed 방 설정 메서드 추가
+        public void SetAsSunbedRoom(float price, float reputation)
+        {
+            isSunbedRoom = true;
+            fixedPrice = price;
+            fixedReputation = reputation;
+            
+            // 고정값으로 설정
+            TotalRoomPrice = Mathf.RoundToInt(fixedPrice);
+            TotalRoomReputation = Mathf.RoundToInt(fixedReputation);
+            
+            Debug.Log($"Sunbed 방 {roomID} 설정: 고정 가격 {TotalRoomPrice}원, 고정 명성도 {TotalRoomReputation}");
+        }
         
         public void UpdateRoomContents()
         {
+            // Sunbed 방인 경우 고정값 사용
+            if (isSunbedRoom)
+            {
+                TotalRoomPrice = Mathf.RoundToInt(fixedPrice);
+                TotalRoomReputation = Mathf.RoundToInt(fixedReputation);
+                Debug.Log($"Sunbed 방 {roomID} 업데이트: 고정 가격 {TotalRoomPrice}원, 고정 명성도 {TotalRoomReputation}");
+                return;
+            }
+            
+            // 일반 방인 경우 기존 로직 사용
             furnitureList.Clear();
             
             // 씬의 모든 FurnitureID 컴포넌트 찾기
@@ -78,6 +107,13 @@ namespace JY
         
         private void CalculateTotalPrice()
         {
+            // Sunbed 방인 경우 고정값 사용
+            if (isSunbedRoom)
+            {
+                TotalRoomPrice = Mathf.RoundToInt(fixedPrice);
+                return;
+            }
+            
             TotalRoomPrice = 0;
             foreach (var furniture in furnitureList)
             {
@@ -94,6 +130,13 @@ namespace JY
         /// </summary>
         private void CalculateTotalReputation()
         {
+            // Sunbed 방인 경우 고정값 사용
+            if (isSunbedRoom)
+            {
+                TotalRoomReputation = Mathf.RoundToInt(fixedReputation);
+                return;
+            }
+            
             TotalRoomReputation = 0;
             foreach (var furniture in furnitureList)
             {
@@ -127,6 +170,13 @@ namespace JY
         {
             // 방의 범위를 시각적으로 표시
             Gizmos.color = isRoomUsed ? Color.red : Color.yellow;
+            
+            // Sunbed 방은 다른 색상으로 표시
+            if (isSunbedRoom)
+            {
+                Gizmos.color = isRoomUsed ? Color.magenta : Color.cyan;
+            }
+            
             Gizmos.DrawWireCube(roomBounds.center, roomBounds.size);
         }
     }

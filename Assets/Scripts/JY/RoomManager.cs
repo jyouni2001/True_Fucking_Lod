@@ -97,11 +97,46 @@ public class RoomManager : MonoBehaviour
             {
                 room.roomID = (allRooms.Count + 100).ToString();
             }
-            if (showDebug)
+            
+            // Sunbed 방인지 확인하고 설정
+            if (room.isSunbedRoom && room.fixedPrice > 0)
+            {
+                room.SetAsSunbedRoom(room.fixedPrice, room.fixedReputation);
+                if (showDebug)
+                {
+                    Debug.Log($"새로운 Sunbed 방 {room.roomID}이(가) 등록되었습니다. 고정 가격: {room.fixedPrice}원, 고정 명성도: {room.fixedReputation}");
+                }
+            }
+            else if (showDebug)
             {
                 Debug.Log($"새로운 방 {room.roomID}이(가) 등록되었습니다.");
             }
         }
+    }
+    
+    // RoomDetector에서 방 정보를 받아 RoomContents를 생성하는 메서드 추가
+    public void RegisterRoomFromDetector(RoomDetector.RoomInfo roomInfo, GameObject roomGameObject)
+    {
+        RoomContents roomContents = roomGameObject.GetComponent<RoomContents>();
+        if (roomContents == null)
+        {
+            roomContents = roomGameObject.AddComponent<RoomContents>();
+        }
+        
+        roomContents.roomID = roomInfo.roomId;
+        roomContents.SetRoomBounds(roomInfo.bounds);
+        
+        // Sunbed 방인지 확인하고 설정
+        if (roomInfo.isSunbedRoom)
+        {
+            roomContents.SetAsSunbedRoom(roomInfo.fixedPrice, roomInfo.fixedReputation);
+            if (showDebug)
+            {
+                Debug.Log($"Sunbed 방 {roomInfo.roomId} 생성 완료. 고정 가격: {roomInfo.fixedPrice}원, 고정 명성도: {roomInfo.fixedReputation}");
+            }
+        }
+        
+        RegisterNewRoom(roomContents);
     }
     
     // 방이 제거되었을 때 호출

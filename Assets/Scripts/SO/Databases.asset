@@ -27,8 +27,8 @@ MonoBehaviour:
     IsWall: 0
     <Size>k__BackingField: {x: 3, y: 3}
     <Prefab>k__BackingField: {fileID: 4952451260224711998, guid: f571231ec60b2d441900cf0e394103f8, type: 3}
-    <BasePrice>k__BackingField: 0
-    <ReputationValue>k__BackingField: 1
+    <BasePrice>k__BackingField: 30
+    <ReputationValue>k__BackingField: 30
   - <Name>k__BackingField: Parasol_Green
     <ID>k__BackingField: 2
     <kindIndex>k__BackingField: 1

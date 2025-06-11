@@ -67,6 +67,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: Sunbad_03
       objectReference: {fileID: 0}
+    - target: {fileID: 4969364181144687540, guid: c9e6d2c2be2771a47910b093a74d439f, type: 3}
+      propertyPath: m_TagString
+      value: Sunbed
+      objectReference: {fileID: 0}
     - target: {fileID: 5745866107929856270, guid: c9e6d2c2be2771a47910b093a74d439f, type: 3}
       propertyPath: m_LocalPosition.x
       value: 4
@@ -110,13 +114,35 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 4969364181144687540, guid: c9e6d2c2be2771a47910b093a74d439f, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 6741146228462032957}
   m_SourcePrefab: {fileID: 100100000, guid: c9e6d2c2be2771a47910b093a74d439f, type: 3}
 --- !u!4 &5011439017384508577 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 5745866107929856270, guid: c9e6d2c2be2771a47910b093a74d439f, type: 3}
   m_PrefabInstance: {fileID: 734473717133997487}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &5676758264479229467 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 4969364181144687540, guid: c9e6d2c2be2771a47910b093a74d439f, type: 3}
+  m_PrefabInstance: {fileID: 734473717133997487}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &6741146228462032957
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5676758264479229467}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8b91831e192765541991bd8e0d14ed37, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  id: 1
+  database: {fileID: 11400000, guid: a210e61efb4380d438bbfe0a16698a7e, type: 2}
 --- !u!1001 &4936438118111909574
 PrefabInstance:
   m_ObjectHideFlags: 0

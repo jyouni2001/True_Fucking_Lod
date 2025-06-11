@@ -13,6 +13,11 @@ public class RoomDetector : MonoBehaviour
     [SerializeField] private int minBeds = 1;
     [SerializeField] private float scanInterval = 2f;
     [SerializeField] private LayerMask roomElementsLayer;
+    
+    // Sunbed 방 설정
+    [SerializeField] private bool enableSunbedRooms = true; // Sunbed 방 인식 활성화
+    [SerializeField] private float sunbedRoomPrice = 100f; // Sunbed 방 고정 가격
+    [SerializeField] private float sunbedRoomReputation = 50f; // Sunbed 방 고정 명성도
 
     private Dictionary<Vector3Int, RoomCell> roomGrid = new Dictionary<Vector3Int, RoomCell>();
     private List<RoomInfo> detectedRooms = new List<RoomInfo>();
@@ -28,6 +33,7 @@ public class RoomDetector : MonoBehaviour
         public bool isWall;
         public bool isDoor;
         public bool isBed;
+        public bool isSunbed; // Sunbed 추가
         public Vector3Int position;
         public List<GameObject> objects = new List<GameObject>();
     }
@@ -38,13 +44,23 @@ public class RoomDetector : MonoBehaviour
         public List<GameObject> walls = new List<GameObject>();
         public List<GameObject> doors = new List<GameObject>();
         public List<GameObject> beds = new List<GameObject>();
+        public List<GameObject> sunbeds = new List<GameObject>(); // Sunbed 리스트 추가
         public Bounds bounds;
         public Vector3 center;
         public string roomId;
         public GameObject gameObject;
+        public bool isSunbedRoom = false; // Sunbed 방 여부
+        public float fixedPrice = 0f; // 고정 가격
+        public float fixedReputation = 0f; // 고정 명성도
 
         public bool isValid(int minWalls, int minDoors, int minBeds)
         {
+            // Sunbed 방은 별도 검증 로직
+            if (isSunbedRoom)
+            {
+                return sunbeds.Count > 0;
+            }
+            
             return walls.Count >= minWalls && doors.Count >= minDoors && beds.Count >= minBeds;
         }
     }
@@ -98,6 +114,7 @@ public class RoomDetector : MonoBehaviour
         List<RoomInfo> newRooms = new List<RoomInfo>();
         HashSet<Vector3Int> visitedCells = new HashSet<Vector3Int>();
 
+        // 1. 기존 방식으로 일반 방 찾기
         foreach (var cell in roomGrid)
         {
             if (cell.Value.isFloor && !visitedCells.Contains(cell.Key))
@@ -122,6 +139,13 @@ public class RoomDetector : MonoBehaviour
                     }
                 }
             }
+        }
+
+        // 2. Sunbed 방 찾기 (기존 방에 포함되지 않은 것만)
+        if (enableSunbedRooms)
+        {
+            var sunbedRooms = FindSunbedRooms(newRooms);
+            newRooms.AddRange(sunbedRooms);
         }
 
         DebugLog($"스캔 결과:\n" +
@@ -212,6 +236,17 @@ public class RoomDetector : MonoBehaviour
             roomGrid[gridPosition].objects.Add(obj.transform.parent?.gameObject ?? obj);
         });
 
+        // Sunbed 태그 처리 추가
+        ProcessTaggedObjects("Sunbed", (obj) => {
+            Vector3Int gridPosition = GetParentGridPosition(obj);
+            if (!roomGrid.ContainsKey(gridPosition))
+            {
+                roomGrid[gridPosition] = new RoomCell { position = gridPosition, objects = new List<GameObject>() };
+            }
+            roomGrid[gridPosition].isSunbed = true;
+            roomGrid[gridPosition].objects.Add(obj.transform.parent?.gameObject ?? obj);
+        });
+
         // 그리드 정보 출력
         foreach (var cell in roomGrid)
         {
@@ -220,6 +255,7 @@ public class RoomDetector : MonoBehaviour
                      $"Wall: {cell.Value.isWall}\n" +
                      $"Door: {cell.Value.isDoor}\n" +
                      $"Bed: {cell.Value.isBed}\n" +
+                     $"Sunbed: {cell.Value.isSunbed}\n" +
                      $"Objects: {cell.Value.objects.Count}");
         }
     }
@@ -339,6 +375,19 @@ public class RoomDetector : MonoBehaviour
                                 {
                                     room.beds.Add(obj);
                                     DebugLog($"침대 발견: {neighbor}");
+                                }
+                            }
+                        }
+
+                        // Sunbed 확인 (일반 방에서도 수집)
+                        if (roomGrid.TryGetValue(neighbor, out RoomCell sunbedCell) && sunbedCell.isSunbed)
+                        {
+                            foreach (var obj in sunbedCell.objects)
+                            {
+                                if (!room.sunbeds.Contains(obj))
+                                {
+                                    room.sunbeds.Add(obj);
+                                    DebugLog($"Sunbed 발견 (방 내부): {neighbor}");
                                 }
                             }
                         }
@@ -551,30 +600,130 @@ public class RoomDetector : MonoBehaviour
         room.gameObject.transform.position = room.center;
         room.gameObject.tag = "Room";
 
-        // RoomContents 컴포넌트 추가 및 설정
-        var roomContents = room.gameObject.AddComponent<RoomContents>();
-        roomContents.roomID = room.roomId;
-        roomContents.SetRoomBounds(room.bounds);
+        // RoomManager를 통해 방 등록 (Sunbed 방 설정 포함)
+        RoomManager roomManager = FindObjectOfType<RoomManager>();
+        if (roomManager != null)
+        {
+            roomManager.RegisterRoomFromDetector(room, room.gameObject);
+        }
+        else
+        {
+            // RoomManager가 없는 경우 직접 RoomContents 추가
+            var roomContents = room.gameObject.AddComponent<RoomContents>();
+            roomContents.roomID = room.roomId;
+            roomContents.SetRoomBounds(room.bounds);
+            
+            if (room.isSunbedRoom)
+            {
+                roomContents.SetAsSunbedRoom(room.fixedPrice, room.fixedReputation);
+            }
+        }
 
         BoxCollider roomCollider = room.gameObject.AddComponent<BoxCollider>();
-        // roomCollider.center = Vector3.zero;
         roomCollider.center = new Vector3(0, 1.5f, 0);
         roomCollider.size = new Vector3(room.bounds.size.x, 3f, room.bounds.size.z);
         roomCollider.isTrigger = true;
-
-        // 디버그용 시각화 오브젝트 생성
-        // var debugVisual = GameObject.CreatePrimitive(PrimitiveType.Cube);
-        // debugVisual.transform.parent = room.gameObject.transform;
-        // debugVisual.transform.localPosition = Vector3.zero;
-        // debugVisual.transform.localScale = new Vector3(room.bounds.size.x, 0.1f, room.bounds.size.z);
-        // debugVisual.GetComponent<MeshRenderer>().material.color = new Color(1, 0, 0, 0.2f);
-        // debugVisual.GetComponent<BoxCollider>().enabled = false;
 
         DebugLog($"방 생성: {room.roomId}\n" +
                  $"- 위치: {room.center}\n" +
                  $"- 벽: {room.walls.Count}개\n" +
                  $"- 문: {room.doors.Count}개\n" +
                  $"- 침대: {room.beds.Count}개\n" +
-                 $"- 바닥: {room.floorCells.Count}개");
+                 $"- Sunbed: {room.sunbeds.Count}개\n" +
+                 $"- 바닥: {room.floorCells.Count}개\n" +
+                 $"- Sunbed 방: {room.isSunbedRoom}");
+    }
+
+    // Sunbed 방 찾기
+    private List<RoomInfo> FindSunbedRooms(List<RoomInfo> existingRooms)
+    {
+        List<RoomInfo> sunbedRooms = new List<RoomInfo>();
+        
+        // 모든 sunbed 오브젝트 찾기
+        var sunbedObjects = GameObject.FindGameObjectsWithTag("Sunbed");
+        DebugLog($"Sunbed 태그 오브젝트 수: {sunbedObjects.Length}");
+        
+        foreach (var sunbedObj in sunbedObjects)
+        {
+            if (sunbedObj == null) continue;
+            
+            Vector3Int sunbedGridPos = GetParentGridPosition(sunbedObj);
+            
+            // 기존 방에 포함되어 있는지 확인
+            bool isInsideExistingRoom = false;
+            foreach (var existingRoom in existingRooms)
+            {
+                if (IsPositionInsideRoom(sunbedGridPos, existingRoom))
+                {
+                    isInsideExistingRoom = true;
+                    DebugLog($"Sunbed {sunbedObj.name}은 기존 방 {existingRoom.roomId} 내부에 있음");
+                    break;
+                }
+            }
+            
+            // 기존 방에 포함되지 않은 경우에만 독립적인 방으로 생성
+            if (!isInsideExistingRoom)
+            {
+                RoomInfo sunbedRoom = CreateSunbedRoom(sunbedObj, sunbedGridPos);
+                if (sunbedRoom != null)
+                {
+                    sunbedRooms.Add(sunbedRoom);
+                    DebugLog($"독립적인 Sunbed 방 생성: {sunbedRoom.roomId}");
+                }
+            }
+        }
+        
+        return sunbedRooms;
+    }
+
+    // 위치가 방 내부에 있는지 확인
+    private bool IsPositionInsideRoom(Vector3Int position, RoomInfo room)
+    {
+        // 방의 바닥 셀 중 하나와 일치하거나 인접한지 확인
+        foreach (var floorCell in room.floorCells)
+        {
+            if (floorCell == position)
+            {
+                return true;
+            }
+            
+            // 인접 셀도 확인 (1칸 거리)
+            float distance = Vector3Int.Distance(floorCell, position);
+            if (distance <= 1.5f) // 대각선 포함
+            {
+                return true;
+            }
+        }
+        
+        return false;
+    }
+
+    // Sunbed 방 생성
+    private RoomInfo CreateSunbedRoom(GameObject sunbedObj, Vector3Int gridPos)
+    {
+        RoomInfo room = new RoomInfo();
+        room.isSunbedRoom = true;
+        room.fixedPrice = sunbedRoomPrice;
+        room.fixedReputation = sunbedRoomReputation;
+        
+        // Sunbed를 중심으로 한 작은 영역 설정
+        room.floorCells.Add(gridPos);
+        room.sunbeds.Add(sunbedObj.transform.parent?.gameObject ?? sunbedObj);
+        
+        // 방 경계 설정 (sunbed 위치 기준)
+        Vector3 worldPos = grid.GetCellCenterWorld(gridPos);
+        room.bounds = new Bounds(worldPos, new Vector3(2f, 1f, 2f)); // 2x2 크기
+        room.center = worldPos;
+        
+        string roomId = $"SunbedRoom_{room.center.x:F0}_{room.center.z:F0}";
+        room.roomId = roomId;
+        
+        DebugLog($"Sunbed 방 생성:\n" +
+                 $"ID: {room.roomId}\n" +
+                 $"위치: {room.center}\n" +
+                 $"고정 가격: {room.fixedPrice}\n" +
+                 $"고정 명성도: {room.fixedReputation}");
+        
+        return room;
     }
 } 
