@@ -20,6 +20,7 @@ namespace JY
         
         public bool IsRoomUsed => isRoomUsed;
         public int TotalRoomPrice { get; private set; }
+        public int TotalRoomReputation { get; private set; } // 방 총 명성도
         
         private void Start()
         {
@@ -69,7 +70,10 @@ namespace JY
             // 총 가격 계산
             CalculateTotalPrice();
             
-            Debug.Log($"방 {roomID} 업데이트: 가구 {furnitureList.Count}개, 총 가격 {TotalRoomPrice}원");
+            // 총 명성도 계산
+            CalculateTotalReputation();
+            
+            Debug.Log($"방 {roomID} 업데이트: 가구 {furnitureList.Count}개, 총 가격 {TotalRoomPrice}원, 총 명성도 {TotalRoomReputation}");
         }
         
         private void CalculateTotalPrice()
@@ -81,6 +85,22 @@ namespace JY
                 {
                     TotalRoomPrice += furniture.Data.BasePrice;
                     Debug.Log($"가구 가격 추가: {furniture.gameObject.name}, 가격: {furniture.Data.BasePrice}원");
+                }
+            }
+        }
+        
+        /// <summary>
+        /// 방 내 모든 가구의 명성도 합계를 계산합니다.
+        /// </summary>
+        private void CalculateTotalReputation()
+        {
+            TotalRoomReputation = 0;
+            foreach (var furniture in furnitureList)
+            {
+                if (furniture != null && furniture.Data != null)
+                {
+                    TotalRoomReputation += furniture.Data.ReputationValue;
+                    Debug.Log($"가구 명성도 추가: {furniture.gameObject.name}, 명성도: {furniture.Data.ReputationValue}");
                 }
             }
         }

@@ -50,4 +50,7 @@ public class ObjectData
 
     [field: SerializeField]
     public int BasePrice { get; private set; } // 정윤
+
+    [field: SerializeField]
+    public int ReputationValue { get; private set; } = 1; // 명성도 값 (기본값 1)
 }

@@ -85,6 +85,35 @@ namespace JY
         }
         
         /// <summary>
+        /// AI가 방 사용을 완료했을 때 방 명성도를 기반으로 명성도를 증가시킵니다.
+        /// </summary>
+        /// <param name="aiName">AI 이름</param>
+        /// <param name="roomID">사용한 방 ID</param>
+        /// <param name="roomReputation">방의 총 명성도</param>
+        public void AddReputation(string aiName, string roomID, int roomReputation)
+        {
+            // 방 명성도를 그대로 명성도 증가량으로 사용
+            int reputationGain = Mathf.Max(1, roomReputation); // 최소 1 보장
+            
+            currentReputation += reputationGain;
+            
+            // 로그 기록
+            string logMessage = $"{aiName}이(가) 방 {roomID} 사용 완료 - 방 명성도 기반 +{reputationGain} (총 명성도: {currentReputation})";
+            reputationLogs.Add(logMessage);
+            
+            if (showDebugLogs)
+            {
+                Debug.Log($"[명성도 시스템] {logMessage}");
+            }
+            
+            // UI 업데이트
+            UpdateUI();
+            
+            // 이벤트 발생
+            OnReputationChanged?.Invoke(currentReputation);
+        }
+        
+        /// <summary>
         /// 명성도 범위를 설정합니다.
         /// </summary>
         /// <param name="min">최소 증가량</param>
