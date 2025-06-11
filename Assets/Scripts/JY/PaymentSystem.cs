@@ -57,14 +57,18 @@ namespace JY
         
         public int ProcessPayment(string aiName)
         {
+            Debug.Log($"[PaymentSystem] ProcessPayment 시작 - AI: {aiName}");
+            
             int totalAmount = 0;
             List<PaymentInfo> aiPayments = paymentQueue.FindAll(p => p.aiName == aiName && !p.isPaid);
+            
+            Debug.Log($"[PaymentSystem] {aiName}의 미결제 항목 {aiPayments.Count}개 발견");
             
             foreach (var payment in aiPayments)
             {
                 totalAmount += payment.amount;
                 payment.isPaid = true;
-                Debug.Log($"결제 처리: {payment.aiName}, 방 {payment.roomID}, {payment.amount}원, 명성도: {payment.roomReputation}");
+                Debug.Log($"[PaymentSystem] 결제 처리: {payment.aiName}, 방 {payment.roomID}, {payment.amount}원, 명성도: {payment.roomReputation}");
             }
             
             // 결제된 금액을 플레이어 소지금에 추가
@@ -74,26 +78,34 @@ namespace JY
                 if (playerWallet != null)
                 {
                     playerWallet.AddMoney(totalAmount);
+                    Debug.Log($"[PaymentSystem] 플레이어 소지금에 {totalAmount}원 추가");
                 }
                 else
                 {
-                    Debug.LogError("PlayerWallet을 찾을 수 없습니다.");
+                    Debug.LogError("[PaymentSystem] PlayerWallet을 찾을 수 없습니다.");
                 }
                 
                 // ★ 명성도 증가 - 각 방의 명성도를 기반으로 명성도 증가
                 if (reputationSystem != null)
                 {
+                    Debug.Log($"[PaymentSystem] ReputationSystem 발견, 명성도 증가 시작");
                     foreach (var payment in aiPayments)
                     {
+                        Debug.Log($"[PaymentSystem] 명성도 증가 호출 - AI: {payment.aiName}, 방: {payment.roomID}, 명성도: {payment.roomReputation}");
                         // 방 명성도 기반으로 명성도 지급
                         reputationSystem.AddReputation(payment.aiName, payment.roomID, payment.roomReputation);
                     }
+                }
+                else
+                {
+                    Debug.LogError("[PaymentSystem] ReputationSystem을 찾을 수 없습니다!");
                 }
             }
             
             // 처리된 결제 제거
             paymentQueue.RemoveAll(p => p.isPaid);
             
+            Debug.Log($"[PaymentSystem] ProcessPayment 완료 - 총 금액: {totalAmount}원");
             return totalAmount;
         }
         

@@ -12302,8 +12302,8 @@ MonoBehaviour:
   poolSize: 200
   minSpawner: 4
   maxSpawner: 6
-  startHour: 9
-  endHour: 17
+  startHour: 11
+  endHour: 16
   spawnInterval: 2
   showDebugInfo: 1
   currentActiveAIs: 0
@@ -13073,7 +13073,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!114 &1261526995
 MonoBehaviour:
   m_ObjectHideFlags: 0

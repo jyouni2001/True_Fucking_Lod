@@ -136,6 +136,8 @@ public class RoomManager : MonoBehaviour
         // 방 명성도 가져오기
         int roomReputation = room.TotalRoomReputation;
         
+        Debug.Log($"[RoomManager] 방 사용 보고 - AI: {aiName}, 방: {room.roomID}, 가격: {finalPrice}원, 방 명성도: {roomReputation}");
+        
         // 로그 추가
         string usageLog = $"{aiName}이(가) 방 {room.roomID}을(를) 사용: {finalPrice}원, 명성도: {roomReputation}";
         usedRoomLogs.Add(usageLog);
@@ -146,7 +148,12 @@ public class RoomManager : MonoBehaviour
         // 결제 시스템에 요금과 명성도 추가 (있는 경우)
         if (paymentSystem != null)
         {
+            Debug.Log($"[RoomManager] PaymentSystem에 결제 정보 추가 - AI: {aiName}, 방: {room.roomID}, 가격: {finalPrice}, 명성도: {roomReputation}");
             paymentSystem.AddPayment(aiName, finalPrice, room.roomID, roomReputation);
+        }
+        else
+        {
+            Debug.LogError("[RoomManager] PaymentSystem을 찾을 수 없습니다!");
         }
     }
     

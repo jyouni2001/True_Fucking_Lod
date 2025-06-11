@@ -11,8 +11,8 @@ public class AISpawner : MonoBehaviour
     [Header("시간 기반 스폰 설정")]
     [SerializeField] private int minSpawner = 1;   // 최소 스폰 개수
     [SerializeField] private int maxSpawner = 5;   // 최대 스폰 개수
-    [SerializeField] private int startHour = 9;    // 스폰 시작 시간 (9시)
-    [SerializeField] private int endHour = 17;     // 스폰 종료 시간 (17시)
+    [SerializeField] private int startHour = 11;    // 스폰 시작 시간 (11시)
+    [SerializeField] private int endHour = 16;     // 스폰 종료 시간 (17시)
     [SerializeField] private int spawnInterval = 2; // 스폰 간격 (2시간)
     
     [Header("디버그 정보")]

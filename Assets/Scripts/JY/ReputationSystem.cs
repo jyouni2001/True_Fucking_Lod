@@ -12,9 +12,6 @@ namespace JY
     {
         [Header("명성도 설정")]
         [SerializeField] private int currentReputation = 0;
-        [SerializeField] private int minReputationGain = 25;
-        [SerializeField] private int maxReputationGain = 28;
-        
         [Header("UI 설정")]
         [SerializeField] private TextMeshProUGUI reputationText; // Inspector에서 할당
         [SerializeField] private string textFormat = "Grade: {0} {1}"; // {0}: 명성도, {1}: 등급
@@ -33,8 +30,6 @@ namespace JY
         public System.Action<int> OnReputationChanged;
         
         public int CurrentReputation => currentReputation;
-        public int MinReputationGain => minReputationGain;
-        public int MaxReputationGain => maxReputationGain;
         
         void Awake()
         {
@@ -57,34 +52,6 @@ namespace JY
         }
         
         /// <summary>
-        /// AI가 방 사용을 완료했을 때 명성도를 증가시킵니다.
-        /// </summary>
-        /// <param name="aiName">AI 이름</param>
-        /// <param name="roomID">사용한 방 ID</param>
-        public void AddReputation(string aiName, string roomID)
-        {
-            // 최소값과 최대값 사이에서 랜덤하게 명성도 증가량 결정
-            int reputationGain = Random.Range(minReputationGain, maxReputationGain + 1);
-            
-            currentReputation += reputationGain;
-            
-            // 로그 기록
-            string logMessage = $"{aiName}이(가) 방 {roomID} 사용 완료 - 명성도 +{reputationGain} (총 명성도: {currentReputation})";
-            reputationLogs.Add(logMessage);
-            
-            if (showDebugLogs)
-            {
-                Debug.Log($"[명성도 시스템] {logMessage}");
-            }
-            
-            // UI 업데이트
-            UpdateUI();
-            
-            // 이벤트 발생
-            OnReputationChanged?.Invoke(currentReputation);
-        }
-        
-        /// <summary>
         /// AI가 방 사용을 완료했을 때 방 명성도를 기반으로 명성도를 증가시킵니다.
         /// </summary>
         /// <param name="aiName">AI 이름</param>
@@ -92,41 +59,27 @@ namespace JY
         /// <param name="roomReputation">방의 총 명성도</param>
         public void AddReputation(string aiName, string roomID, int roomReputation)
         {
+            Debug.Log($"[명성도 시스템] AddReputation 호출됨 - AI: {aiName}, 방: {roomID}, 명성도: {roomReputation}");
+            
             // 방 명성도를 그대로 명성도 증가량으로 사용
             int reputationGain = Mathf.Max(1, roomReputation); // 최소 1 보장
             
+            int oldReputation = currentReputation;
             currentReputation += reputationGain;
             
             // 로그 기록
-            string logMessage = $"{aiName}이(가) 방 {roomID} 사용 완료 - 방 명성도 기반 +{reputationGain} (총 명성도: {currentReputation})";
+            string logMessage = $"{aiName}이(가) 방 {roomID} 사용 완료 - 방 명성도 기반 +{reputationGain} (이전: {oldReputation} -> 현재: {currentReputation})";
             reputationLogs.Add(logMessage);
             
-            if (showDebugLogs)
-            {
-                Debug.Log($"[명성도 시스템] {logMessage}");
-            }
+            Debug.Log($"[명성도 시스템] {logMessage}");
             
             // UI 업데이트
             UpdateUI();
             
             // 이벤트 발생
             OnReputationChanged?.Invoke(currentReputation);
-        }
-        
-        /// <summary>
-        /// 명성도 범위를 설정합니다.
-        /// </summary>
-        /// <param name="min">최소 증가량</param>
-        /// <param name="max">최대 증가량</param>
-        public void SetReputationRange(int min, int max)
-        {
-            minReputationGain = Mathf.Max(0, min);
-            maxReputationGain = Mathf.Max(minReputationGain, max);
             
-            if (showDebugLogs)
-            {
-                Debug.Log($"[명성도 시스템] 명성도 범위 설정: {minReputationGain} ~ {maxReputationGain}");
-            }
+            Debug.Log($"[명성도 시스템] 명성도 증가 완료 - 최종 명성도: {currentReputation}");
         }
         
         /// <summary>

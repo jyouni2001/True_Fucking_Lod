@@ -44,6 +44,7 @@ public class AIAgent : MonoBehaviour
     [SerializeField] private CounterManager counterManager; // CounterManager 참조
     private TimeSystem timeSystem;                // 시간 시스템 참조
     private int lastBehaviorUpdateHour = -1;      // 마지막 행동 업데이트 시간
+    private bool isScheduledForDespawn = false;   // 11시 디스폰 예정인지 여부
     #endregion
 
     #region 룸 정보 클래스
@@ -283,11 +284,10 @@ public class AIAgent : MonoBehaviour
         int hour = timeSystem.CurrentHour;
         int minute = timeSystem.CurrentMinute;
 
-        // 17:00에 방 사용 중이 아닌 에이전트 디스폰
-        if (hour == 17 && minute == 0 && currentState != AIState.UsingRoom && currentState != AIState.UseWandering && currentState != AIState.RoomWandering && currentRoomIndex == -1)
+        // 17:00에 방 사용 중이 아닌 모든 에이전트 강제 디스폰
+        if (hour == 17 && minute == 0)
         {
-            TransitionToState(AIState.ReturningToSpawn);
-            Debug.Log($"AI {gameObject.name}: 17:00, 방 사용 중 아님, 디스폰.");
+            Handle17OClockForcedDespawn();
             return;
         }
 
@@ -380,6 +380,123 @@ public class AIAgent : MonoBehaviour
         lastBehaviorUpdateHour = hour;
     }
 
+    /// <summary>
+    /// 17:00에 방 사용 중이 아닌 모든 AI를 강제로 디스폰시킵니다.
+    /// </summary>
+    private void Handle17OClockForcedDespawn()
+    {
+        // 방 사용 중인 AI는 디스폰하지 않음
+        if (IsInRoomRelatedState())
+        {
+            Debug.Log($"AI {gameObject.name}: 17:00, 방 사용 중이므로 디스폰하지 않음 (상태: {currentState}).");
+            return;
+        }
+
+        Debug.Log($"AI {gameObject.name}: 17:00, 강제 디스폰 시작 (현재 상태: {currentState}).");
+
+        // 모든 코루틴 강제 종료
+        CleanupCoroutines();
+
+        // 대기열에서 강제 제거
+        if (isInQueue && counterManager != null)
+        {
+            counterManager.LeaveQueue(this);
+            isInQueue = false;
+            isWaitingForService = false;
+            Debug.Log($"AI {gameObject.name}: 17:00, 대기열에서 강제 제거됨.");
+            
+            // 대기열 강제 정리는 마지막에 한 번만 호출 (중복 호출 방지)
+            counterManager.ForceCleanupQueue();
+        }
+
+        // 강제 디스폰
+        TransitionToState(AIState.ReturningToSpawn);
+        agent.SetDestination(spawnPoint.position);
+        Debug.Log($"AI {gameObject.name}: 17:00, 강제 디스폰 실행.");
+    }
+
+    /// <summary>
+    /// 방 관련 상태인지 확인합니다.
+    /// </summary>
+    private bool IsInRoomRelatedState()
+    {
+        return (currentState == AIState.UsingRoom || 
+                currentState == AIState.UseWandering || 
+                currentState == AIState.RoomWandering ||
+                currentState == AIState.MovingToRoom) && 
+                currentRoomIndex != -1;
+    }
+
+    /// <summary>
+    /// 11시 체크아웃 완료 후 디스폰을 처리합니다.
+    /// </summary>
+    private void HandleCheckoutDespawn()
+    {
+        // 방이 없고 배회 중인 AI들을 11시에 디스폰
+        if (currentState == AIState.Wandering && currentRoomIndex == -1)
+        {
+            Debug.Log($"AI {gameObject.name}: 11시, 체크아웃 완료 후 디스폰.");
+            TransitionToState(AIState.ReturningToSpawn);
+            agent.SetDestination(spawnPoint.position);
+        }
+    }
+
+    /// <summary>
+    /// 중요한 상태인지 확인합니다 (행동 재결정을 방해하면 안 되는 상태).
+    /// </summary>
+    private bool IsInCriticalState()
+    {
+        return currentState == AIState.WaitingInQueue || 
+               currentState == AIState.MovingToQueue || 
+               currentState == AIState.MovingToRoom || 
+               currentState == AIState.ReportingRoom ||
+               currentState == AIState.ReportingRoomQueue ||
+               currentState == AIState.ReturningToSpawn ||
+               isInQueue || isWaitingForService ||
+               isScheduledForDespawn; // 11시 디스폰 예정인 AI는 행동 재결정하지 않음
+    }
+
+    /// <summary>
+    /// 방 사용 중인 AI의 시간별 내부/외부 배회를 재결정합니다.
+    /// </summary>
+    private void RedetermineRoomBehavior()
+    {
+        if (!IsInRoomRelatedState()) return;
+
+        int hour = timeSystem.CurrentHour;
+        
+        // 0시에는 무조건 내부 배회
+        if (hour == 0)
+        {
+            if (currentState == AIState.UseWandering)
+            {
+                Debug.Log($"AI {gameObject.name}: 0시, 방 내부 배회로 전환.");
+                TransitionToState(AIState.RoomWandering);
+            }
+        }
+        // 11-17시, 17-24시에는 50/50 확률로 재결정
+        else if ((hour >= 11 && hour < 17) || (hour >= 17 && hour < 24))
+        {
+            float randomValue = Random.value;
+            if (randomValue < 0.5f)
+            {
+                if (currentState != AIState.UseWandering)
+                {
+                    Debug.Log($"AI {gameObject.name}: {hour}시, 방 외부 배회로 전환 (50%).");
+                    TransitionToState(AIState.UseWandering);
+                }
+            }
+            else
+            {
+                if (currentState != AIState.RoomWandering)
+                {
+                    Debug.Log($"AI {gameObject.name}: {hour}시, 방 내부 배회로 전환 (50%).");
+                    TransitionToState(AIState.RoomWandering);
+                }
+            }
+        }
+    }
+
     private void FallbackBehavior()
     {
         if (counterPosition == null || counterManager == null)
@@ -429,31 +546,49 @@ public class AIAgent : MonoBehaviour
             int hour = timeSystem.CurrentHour;
             int minute = timeSystem.CurrentMinute;
 
-            // 17:00에 방 사용 중이 아닌 에이전트 디스폰
-            if (hour == 17 && minute == 0 && currentState != AIState.UsingRoom && currentState != AIState.UseWandering &&
-            currentState != AIState.RoomWandering && currentState != AIState.ReturningToSpawn && currentRoomIndex == -1)
+            // 17:00에 방 사용 중이 아닌 모든 에이전트 강제 디스폰
+            if (hour == 17 && minute == 0)
             {
-                TransitionToState(AIState.ReturningToSpawn);
-                Debug.Log($"AI {gameObject.name}: 17:00, 방 사용 중 아님, 강제 디스폰.");
+                Handle17OClockForcedDespawn();
                 return;
             }
 
-            // 매 정시 행동 초기화 (11:00~16:00)
-            if (hour >= 11 && hour < 17 && minute == 0 && hour != lastBehaviorUpdateHour &&
-                currentState != AIState.UsingRoom && currentState != AIState.UseWandering &&
-                currentState != AIState.WaitingInQueue && currentState != AIState.MovingToRoom && 
-                currentState != AIState.ReportingRoom)
+            // 11시 체크아웃 완료 후 디스폰 체크
+            if (hour == 11 && minute == 0 && lastBehaviorUpdateHour != hour)
             {
-                DetermineBehaviorByTime();
+                HandleCheckoutDespawn();
+                lastBehaviorUpdateHour = hour;
+                return;
             }
 
-            // 시간대 전환 시 행동 재결정
-            if ((hour == 0 || hour == 9 || hour == 11 || hour == 17) && minute == 0 &&
-                currentState != AIState.UsingRoom && currentState != AIState.UseWandering &&
-                currentState != AIState.WaitingInQueue && currentState != AIState.MovingToRoom && 
-                currentState != AIState.ReportingRoom)
+            // 매시간 행동 재결정 (모든 AI 포함)
+            if (minute == 0 && hour != lastBehaviorUpdateHour)
             {
-                DetermineBehaviorByTime();
+                // 디스폰 예정 AI는 행동 재결정하지 않음
+                if (isScheduledForDespawn)
+                {
+                    Debug.Log($"[AIAgent] {gameObject.name}: 11시 디스폰 예정이므로 행동 재결정 생략");
+                    lastBehaviorUpdateHour = hour;
+                }
+                // 중요한 상태가 아닌 경우에만 행동 재결정
+                else if (!IsInCriticalState())
+                {
+                    Debug.Log($"[AIAgent] {gameObject.name}: {hour}시 행동 재결정 시작");
+                    DetermineBehaviorByTime();
+                    lastBehaviorUpdateHour = hour;
+                }
+                // 방 사용 중인 AI도 매시간 내부/외부 배회 재결정
+                else if (IsInRoomRelatedState())
+                {
+                    Debug.Log($"[AIAgent] {gameObject.name}: {hour}시 방 배회 재결정");
+                    RedetermineRoomBehavior();
+                    lastBehaviorUpdateHour = hour;
+                }
+                else
+                {
+                    Debug.Log($"[AIAgent] {gameObject.name}: {hour}시 중요한 상태로 행동 재결정 생략 (상태: {currentState})");
+                    lastBehaviorUpdateHour = hour;
+                }
             }
         }
 
@@ -495,8 +630,11 @@ public class AIAgent : MonoBehaviour
     #region 대기열 동작
     private IEnumerator QueueBehavior()
     {
+        Debug.Log($"[AIAgent] {gameObject.name}: QueueBehavior 시작 - 상태: {currentState}, 방 인덱스: {currentRoomIndex}");
+        
         if (counterManager == null || counterPosition == null)
         {
+            Debug.LogWarning($"[AIAgent] {gameObject.name}: CounterManager 또는 CounterPosition이 없음");
             float randomValue = Random.value;
             if (randomValue < 0.5f)
             {
@@ -511,10 +649,23 @@ public class AIAgent : MonoBehaviour
             yield break;
         }
 
+        Debug.Log($"[AIAgent] {gameObject.name}: 대기열 진입 시도");
         if (!counterManager.TryJoinQueue(this))
         {
+            Debug.Log($"[AIAgent] {gameObject.name}: 대기열 진입 실패 - 상태: {currentState}");
+            
+            // ReportingRoomQueue 상태인 경우 재시도
+            if (currentState == AIState.ReportingRoomQueue)
+            {
+                Debug.Log($"[AIAgent] {gameObject.name}: ReportingRoomQueue 상태이므로 재시도");
+                yield return new WaitForSeconds(Random.Range(2f, 5f));
+                StartCoroutine(QueueBehavior());
+                yield break;
+            }
+            
             if (currentRoomIndex == -1)
             {
+                Debug.Log($"[AIAgent] {gameObject.name}: 방 없음, 대안 행동 선택");
                 float randomValue = Random.value;
                 if (randomValue < 0.5f)
                 {
@@ -529,31 +680,50 @@ public class AIAgent : MonoBehaviour
             }
             else
             {
+                Debug.Log($"[AIAgent] {gameObject.name}: 방 있음, 재시도");
                 yield return new WaitForSeconds(Random.Range(1f, 3f));
                 StartCoroutine(QueueBehavior());
             }
             yield break;
         }
 
+        Debug.Log($"[AIAgent] {gameObject.name}: 대기열 진입 성공");
         isInQueue = true;
         TransitionToState(currentState == AIState.ReportingRoomQueue ? AIState.ReportingRoomQueue : AIState.WaitingInQueue);
 
         while (isInQueue)
         {
+            // 17시 체크 - 대기열에서도 즉시 디스폰
+            if (timeSystem != null && timeSystem.CurrentHour == 17 && timeSystem.CurrentMinute == 0)
+            {
+                Debug.Log($"AI {gameObject.name}: 대기열 대기 중 17시 감지, 즉시 강제 디스폰.");
+                Handle17OClockForcedDespawn();
+                yield break;
+            }
+
             if (!agent.pathPending && agent.remainingDistance < arrivalDistance)
             {
                 if (counterManager.CanReceiveService(this))
                 {
+                    Debug.Log($"[AIAgent] {gameObject.name}: 서비스 시작");
                     counterManager.StartService(this);
                     isWaitingForService = true;
 
                     while (isWaitingForService)
                     {
+                        // 서비스 대기 중에도 17시 체크
+                        if (timeSystem != null && timeSystem.CurrentHour == 17 && timeSystem.CurrentMinute == 0)
+                        {
+                            Debug.Log($"AI {gameObject.name}: 서비스 대기 중 17시 감지, 즉시 강제 디스폰.");
+                            Handle17OClockForcedDespawn();
+                            yield break;
+                        }
                         yield return new WaitForSeconds(0.1f);
                     }
 
                     if (currentState == AIState.ReportingRoomQueue)
                     {
+                        Debug.Log($"[AIAgent] {gameObject.name}: ReportingRoomQueue 서비스 완료, ReportRoomVacancy 시작");
                         StartCoroutine(ReportRoomVacancy());
                     }
                     else if (currentRoomIndex != -1)
@@ -718,7 +888,7 @@ public class AIAgent : MonoBehaviour
     {
         TransitionToState(AIState.ReportingRoom);
         int reportingRoomIndex = currentRoomIndex;
-        Debug.Log($"AI {gameObject.name}: 룸 {reportingRoomIndex + 1}번 사용 완료 보고.");
+        Debug.Log($"[AIAgent] AI {gameObject.name}: 룸 {reportingRoomIndex + 1}번 사용 완료 보고 시작.");
 
         lock (lockObject)
         {
@@ -726,30 +896,29 @@ public class AIAgent : MonoBehaviour
             {
                 roomList[reportingRoomIndex].isOccupied = false;
                 currentRoomIndex = -1;
-                Debug.Log($"룸 {reportingRoomIndex + 1}번 비워짐.");
+                Debug.Log($"[AIAgent] 룸 {reportingRoomIndex + 1}번 비워짐.");
             }
         }
 
         var roomManager = FindObjectOfType<RoomManager>();
         if (roomManager != null)
         {
+            Debug.Log($"[AIAgent] RoomManager 발견. ProcessRoomPayment 호출 - AI: {gameObject.name}");
             int amount = roomManager.ProcessRoomPayment(gameObject.name);
-            Debug.Log($"AI {gameObject.name}: 룸 결제 완료, 금액: {amount}원");
+            Debug.Log($"[AIAgent] AI {gameObject.name}: 룸 결제 완료, 금액: {amount}원");
+        }
+        else
+        {
+            Debug.LogError($"[AIAgent] AI {gameObject.name}: RoomManager를 찾을 수 없습니다!");
         }
 
         if (timeSystem.CurrentHour >= 9 && timeSystem.CurrentHour < 11)
         {
-            if (counterManager != null && counterPosition != null)
-            {
-                TransitionToState(AIState.Wandering);
-                wanderingCoroutine = StartCoroutine(WanderingBehavior());
-                yield return new WaitForSeconds(Random.Range(5f, 10f));
-                TransitionToState(AIState.MovingToQueue);
-            }
-            else
-            {
-                TransitionToState(AIState.ReturningToSpawn);
-            }
+            // 9-11시 체크아웃 후에는 배회하다가 11시에 디스폰 예정
+            Debug.Log($"AI {gameObject.name}: 9-11시 체크아웃 완료, 11시 디스폰 예정으로 설정.");
+            isScheduledForDespawn = true; // 디스폰 예정 플래그 설정
+            TransitionToState(AIState.Wandering);
+            wanderingCoroutine = StartCoroutine(WanderingBehaviorWithDespawn());
         }
         else
         {
@@ -768,13 +937,104 @@ public class AIAgent : MonoBehaviour
 
         while (currentState == AIState.Wandering && elapsedTime < wanderingTime)
         {
+            // 17시 체크 - 배회 중에도 즉시 디스폰
+            if (timeSystem != null && timeSystem.CurrentHour == 17 && timeSystem.CurrentMinute == 0)
+            {
+                Debug.Log($"AI {gameObject.name}: 배회 중 17시 감지, 즉시 강제 디스폰.");
+                Handle17OClockForcedDespawn();
+                yield break;
+            }
+
             WanderOnGround();
             float waitTime = Random.Range(3f, 7f);
-            yield return new WaitForSeconds(waitTime);
+            
+            // 대기 시간을 쪼개서 17시 체크를 더 자주 함
+            float remainingWait = waitTime;
+            while (remainingWait > 0 && currentState == AIState.Wandering)
+            {
+                yield return new WaitForSeconds(1f);
+                remainingWait -= 1f;
+                
+                // 대기 중에도 17시 체크
+                if (timeSystem != null && timeSystem.CurrentHour == 17 && timeSystem.CurrentMinute == 0)
+                {
+                    Debug.Log($"AI {gameObject.name}: 배회 대기 중 17시 감지, 즉시 강제 디스폰.");
+                    Handle17OClockForcedDespawn();
+                    yield break;
+                }
+            }
+            
             elapsedTime += waitTime;
         }
 
+        // 배회 완료 후에도 17시 체크
+        if (timeSystem != null && timeSystem.CurrentHour == 17 && timeSystem.CurrentMinute == 0)
+        {
+            Handle17OClockForcedDespawn();
+            yield break;
+        }
+
         DetermineBehaviorByTime();
+    }
+
+    /// <summary>
+    /// 9-11시 체크아웃 후 배회하다가 11시에 디스폰하는 특별한 배회
+    /// </summary>
+    private IEnumerator WanderingBehaviorWithDespawn()
+    {
+        Debug.Log($"AI {gameObject.name}: 9-11시 체크아웃 후 배회 시작, 11시에 디스폰 예정.");
+        
+        while (currentState == AIState.Wandering)
+        {
+            // 11시가 되면 즉시 디스폰
+            if (timeSystem != null && timeSystem.CurrentHour >= 11)
+            {
+                Debug.Log($"AI {gameObject.name}: 11시 도달, 체크아웃 완료 AI 디스폰.");
+                isScheduledForDespawn = false; // 플래그 리셋
+                TransitionToState(AIState.ReturningToSpawn);
+                agent.SetDestination(spawnPoint.position);
+                yield break;
+            }
+
+            // 17시 체크도 유지
+            if (timeSystem != null && timeSystem.CurrentHour == 17 && timeSystem.CurrentMinute == 0)
+            {
+                Debug.Log($"AI {gameObject.name}: 배회 중 17시 감지, 즉시 강제 디스폰.");
+                isScheduledForDespawn = false; // 플래그 리셋
+                Handle17OClockForcedDespawn();
+                yield break;
+            }
+
+            WanderOnGround();
+            float waitTime = Random.Range(3f, 7f);
+            
+            // 대기 시간을 쪼개서 11시와 17시 체크를 더 자주 함
+            float remainingWait = waitTime;
+            while (remainingWait > 0 && currentState == AIState.Wandering)
+            {
+                yield return new WaitForSeconds(1f);
+                remainingWait -= 1f;
+                
+                // 11시 체크
+                if (timeSystem != null && timeSystem.CurrentHour >= 11)
+                {
+                    Debug.Log($"AI {gameObject.name}: 대기 중 11시 도달, 체크아웃 완료 AI 디스폰.");
+                    isScheduledForDespawn = false; // 플래그 리셋
+                    TransitionToState(AIState.ReturningToSpawn);
+                    agent.SetDestination(spawnPoint.position);
+                    yield break;
+                }
+                
+                // 17시 체크
+                if (timeSystem != null && timeSystem.CurrentHour == 17 && timeSystem.CurrentMinute == 0)
+                {
+                    Debug.Log($"AI {gameObject.name}: 대기 중 17시 감지, 즉시 강제 디스폰.");
+                    isScheduledForDespawn = false; // 플래그 리셋
+                    Handle17OClockForcedDespawn();
+                    yield break;
+                }
+            }
+        }
     }
 
     private IEnumerator UseWanderingBehavior()
@@ -788,6 +1048,7 @@ public class AIAgent : MonoBehaviour
 
         while (currentState == AIState.UseWandering && agent.isOnNavMesh)
         {
+            // 17시 체크는 하지 않음 - 방 사용 중인 AI는 계속 작동
             Vector3 roomCenter = roomList[currentRoomIndex].transform.position;
             float roomSize = roomList[currentRoomIndex].size;
             if (TryGetValidPosition(roomCenter, roomSize, NavMesh.AllAreas, out Vector3 targetPos))
@@ -814,6 +1075,7 @@ public class AIAgent : MonoBehaviour
 
         while (currentState == AIState.RoomWandering && elapsedTime < wanderingTime && agent.isOnNavMesh)
         {
+            // 17시 체크는 하지 않음 - 방 사용 중인 AI는 계속 작동
             Vector3 roomCenter = roomList[currentRoomIndex].transform.position;
             float roomSize = roomList[currentRoomIndex].size;
             if (TryGetValidPosition(roomCenter, roomSize, NavMesh.AllAreas, out Vector3 targetPos))
@@ -930,6 +1192,8 @@ public class AIAgent : MonoBehaviour
 
     private void CleanupResources()
     {
+        Debug.Log($"[AIAgent] {gameObject.name}: CleanupResources 시작");
+        
         if (currentRoomIndex != -1)
         {
             lock (lockObject)
@@ -946,11 +1210,15 @@ public class AIAgent : MonoBehaviour
         isBeingServed = false;
         isInQueue = false;
         isWaitingForService = false;
+        isScheduledForDespawn = false; // 디스폰 예정 플래그 리셋
 
         if (counterManager != null)
         {
             counterManager.LeaveQueue(this);
+            Debug.Log($"[AIAgent] {gameObject.name}: 대기열에서 제거 완료");
         }
+        
+        Debug.Log($"[AIAgent] {gameObject.name}: CleanupResources 완료");
     }
     #endregion
 
