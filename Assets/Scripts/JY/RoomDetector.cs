@@ -14,11 +14,16 @@ public class RoomDetector : MonoBehaviour
     [SerializeField] private float scanInterval = 2f;
     [SerializeField] private LayerMask roomElementsLayer;
     
+    // Y축 및 바닥 감지 설정
+    [SerializeField] private float floorHeightTolerance = 1f; // Y값 허용 오차 (층별 구분)
+    [SerializeField] private float floorDetectionOffset = -0.5f; // 바닥 감지 오프셋 (벽보다 아래)
+    
     // Sunbed 방 설정
     [SerializeField] private bool enableSunbedRooms = true; // Sunbed 방 인식 활성화
     [SerializeField] private float sunbedRoomPrice = 100f; // Sunbed 방 고정 가격
     [SerializeField] private float sunbedRoomReputation = 50f; // Sunbed 방 고정 명성도
 
+    // 3D 그리드로 변경하여 층 구분 지원
     private Dictionary<Vector3Int, RoomCell> roomGrid = new Dictionary<Vector3Int, RoomCell>();
     private List<RoomInfo> detectedRooms = new List<RoomInfo>();
     private HashSet<string> existingRoomIds = new HashSet<string>();
@@ -36,6 +41,7 @@ public class RoomDetector : MonoBehaviour
         public bool isSunbed; // Sunbed 추가
         public Vector3Int position;
         public List<GameObject> objects = new List<GameObject>();
+        public float worldHeight; // 실제 월드 높이 저장
     }
 
     public class RoomInfo
@@ -52,6 +58,7 @@ public class RoomDetector : MonoBehaviour
         public bool isSunbedRoom = false; // Sunbed 방 여부
         public float fixedPrice = 0f; // 고정 가격
         public float fixedReputation = 0f; // 고정 명성도
+        public int floorLevel; // 층 정보 추가
 
         public bool isValid(int minWalls, int minDoors, int minBeds)
         {
@@ -132,10 +139,20 @@ public class RoomDetector : MonoBehaviour
                     
                     if (isRoomValid)
                     {
-                        string roomId = $"Room_{room.center.x:F0}_{room.center.z:F0}";
+                        // 층 정보 계산 및 설정
+                        if (room.floorCells.Count > 0)
+                        {
+                            var firstFloorCell = room.floorCells[0];
+                            if (roomGrid.TryGetValue(firstFloorCell, out RoomCell floorCell))
+                            {
+                                room.floorLevel = Mathf.RoundToInt(floorCell.worldHeight / 3f); // 3m당 1층으로 가정
+                            }
+                        }
+                        
+                        string roomId = $"Room_F{room.floorLevel}_{room.center.x:F0}_{room.center.z:F0}";
                         room.roomId = roomId;
                         newRooms.Add(room);
-                        DebugLog($"새로운 방 추가됨: {roomId}");
+                        DebugLog($"새로운 방 추가됨: {roomId} (층: {room.floorLevel})");
                     }
                 }
             }
@@ -195,42 +212,58 @@ public class RoomDetector : MonoBehaviour
         roomGrid.Clear();
         DebugLog("그리드 업데이트 시작");
 
-        // 각 태그별로 오브젝트 검색 및 부모 오브젝트 위치 사용
+        // 각 태그별로 오브젝트 검색 및 3D 위치 사용
         ProcessTaggedObjects("Floor", (obj) => {
-            Vector3Int gridPosition = GetParentGridPosition(obj);
+            Vector3Int gridPosition = GetAdjustedGridPosition(obj, floorDetectionOffset);
             if (!roomGrid.ContainsKey(gridPosition))
             {
-                roomGrid[gridPosition] = new RoomCell { position = gridPosition, objects = new List<GameObject>() };
+                roomGrid[gridPosition] = new RoomCell { 
+                    position = gridPosition, 
+                    objects = new List<GameObject>(),
+                    worldHeight = obj.transform.position.y + floorDetectionOffset
+                };
             }
             roomGrid[gridPosition].isFloor = true;
             roomGrid[gridPosition].objects.Add(obj.transform.parent?.gameObject ?? obj);
         });
 
         ProcessTaggedObjects("Wall", (obj) => {
-            Vector3Int gridPosition = GetParentGridPosition(obj);
+            Vector3Int gridPosition = GetAdjustedGridPosition(obj, 0f);
             if (!roomGrid.ContainsKey(gridPosition))
             {
-                roomGrid[gridPosition] = new RoomCell { position = gridPosition, objects = new List<GameObject>() };
+                roomGrid[gridPosition] = new RoomCell { 
+                    position = gridPosition, 
+                    objects = new List<GameObject>(),
+                    worldHeight = obj.transform.position.y
+                };
             }
             roomGrid[gridPosition].isWall = true;
             roomGrid[gridPosition].objects.Add(obj.transform.parent?.gameObject ?? obj);
         });
 
         ProcessTaggedObjects("Door", (obj) => {
-            Vector3Int gridPosition = GetParentGridPosition(obj);
+            Vector3Int gridPosition = GetAdjustedGridPosition(obj, 0f);
             if (!roomGrid.ContainsKey(gridPosition))
             {
-                roomGrid[gridPosition] = new RoomCell { position = gridPosition, objects = new List<GameObject>() };
+                roomGrid[gridPosition] = new RoomCell { 
+                    position = gridPosition, 
+                    objects = new List<GameObject>(),
+                    worldHeight = obj.transform.position.y
+                };
             }
             roomGrid[gridPosition].isDoor = true;
             roomGrid[gridPosition].objects.Add(obj.transform.parent?.gameObject ?? obj);
         });
 
         ProcessTaggedObjects("Bed", (obj) => {
-            Vector3Int gridPosition = GetParentGridPosition(obj);
+            Vector3Int gridPosition = GetAdjustedGridPosition(obj, floorDetectionOffset);
             if (!roomGrid.ContainsKey(gridPosition))
             {
-                roomGrid[gridPosition] = new RoomCell { position = gridPosition, objects = new List<GameObject>() };
+                roomGrid[gridPosition] = new RoomCell { 
+                    position = gridPosition, 
+                    objects = new List<GameObject>(),
+                    worldHeight = obj.transform.position.y + floorDetectionOffset
+                };
             }
             roomGrid[gridPosition].isBed = true;
             roomGrid[gridPosition].objects.Add(obj.transform.parent?.gameObject ?? obj);
@@ -238,41 +271,45 @@ public class RoomDetector : MonoBehaviour
 
         // Sunbed 태그 처리 추가
         ProcessTaggedObjects("Sunbed", (obj) => {
-            Vector3Int gridPosition = GetParentGridPosition(obj);
+            Vector3Int gridPosition = GetAdjustedGridPosition(obj, floorDetectionOffset);
             if (!roomGrid.ContainsKey(gridPosition))
             {
-                roomGrid[gridPosition] = new RoomCell { position = gridPosition, objects = new List<GameObject>() };
+                roomGrid[gridPosition] = new RoomCell { 
+                    position = gridPosition, 
+                    objects = new List<GameObject>(),
+                    worldHeight = obj.transform.position.y + floorDetectionOffset
+                };
             }
             roomGrid[gridPosition].isSunbed = true;
             roomGrid[gridPosition].objects.Add(obj.transform.parent?.gameObject ?? obj);
         });
 
-        // 그리드 정보 출력
-        foreach (var cell in roomGrid)
-        {
-            DebugLog($"Grid Cell {cell.Key}:\n" +
-                     $"Floor: {cell.Value.isFloor}\n" +
-                     $"Wall: {cell.Value.isWall}\n" +
-                     $"Door: {cell.Value.isDoor}\n" +
-                     $"Bed: {cell.Value.isBed}\n" +
-                     $"Sunbed: {cell.Value.isSunbed}\n" +
-                     $"Objects: {cell.Value.objects.Count}");
-        }
+        DebugLog($"그리드 셀 총 개수: {roomGrid.Count}");
+        DebugLog($"바닥 셀: {roomGrid.Values.Count(c => c.isFloor)}개");
+        DebugLog($"벽 셀: {roomGrid.Values.Count(c => c.isWall)}개");
+        DebugLog($"문 셀: {roomGrid.Values.Count(c => c.isDoor)}개");
+        DebugLog($"침대 셀: {roomGrid.Values.Count(c => c.isBed)}개");
+    }
+
+    // 오프셋을 적용한 그리드 위치 계산
+    private Vector3Int GetAdjustedGridPosition(GameObject obj, float yOffset)
+    {
+        Vector3 worldPosition = obj.transform.position;
+        worldPosition.y += yOffset;
+        Vector3Int gridPosition = grid.WorldToCell(worldPosition);
+        
+        DebugLog($"오브젝트 위치 변환: {obj.name}\n" +
+                 $"Original Position: {obj.transform.position}\n" +
+                 $"Adjusted Position: {worldPosition}\n" +
+                 $"Grid Position: {gridPosition}");
+                 
+        return gridPosition;
     }
 
     private Vector3Int GetParentGridPosition(GameObject obj)
     {
-        // 부모 오브젝트의 위치를 사용하되, 부모가 없으면 자신의 위치 사용
-        Vector3 worldPosition = obj.transform.parent != null ? 
-            obj.transform.parent.position : 
-            obj.transform.position;
-        
-        Vector3Int gridPosition = grid.WorldToCell(worldPosition);
-        DebugLog($"오브젝트 위치 변환: {obj.name}\n" +
-                 $"World Position: {worldPosition}\n" +
-                 $"Grid Position: {gridPosition}");
-                 
-        return gridPosition;
+        // 기존 메서드는 유지하되, 새로운 메서드 사용 권장
+        return GetAdjustedGridPosition(obj, 0f);
     }
 
     private void ProcessTaggedObjects(string tag, System.Action<GameObject> processor)
@@ -710,17 +747,24 @@ public class RoomDetector : MonoBehaviour
         room.floorCells.Add(gridPos);
         room.sunbeds.Add(sunbedObj.transform.parent?.gameObject ?? sunbedObj);
         
+        // 층 정보 계산
+        if (roomGrid.TryGetValue(gridPos, out RoomCell sunbedCell))
+        {
+            room.floorLevel = Mathf.RoundToInt(sunbedCell.worldHeight / 3f); // 3m당 1층으로 가정
+        }
+        
         // 방 경계 설정 (sunbed 위치 기준)
         Vector3 worldPos = grid.GetCellCenterWorld(gridPos);
         room.bounds = new Bounds(worldPos, new Vector3(2f, 1f, 2f)); // 2x2 크기
         room.center = worldPos;
         
-        string roomId = $"SunbedRoom_{room.center.x:F0}_{room.center.z:F0}";
+        string roomId = $"SunbedRoom_F{room.floorLevel}_{room.center.x:F0}_{room.center.z:F0}";
         room.roomId = roomId;
         
         DebugLog($"Sunbed 방 생성:\n" +
                  $"ID: {room.roomId}\n" +
                  $"위치: {room.center}\n" +
+                 $"층: {room.floorLevel}\n" +
                  $"고정 가격: {room.fixedPrice}\n" +
                  $"고정 명성도: {room.fixedReputation}");
         
