@@ -289,33 +289,6 @@ namespace JY
             availableShips.Clear();
             activeShips.Clear();
         }
-        
-        #if UNITY_EDITOR
-        [Header("Editor Tools")]
-        [SerializeField] private bool showPoolInfo = true;
-        
-        private void OnGUI()
-        {
-            if (!showPoolInfo || !Application.isPlaying) return;
-            
-            GUILayout.BeginArea(new Rect(10, 10, 300, 150));
-            GUILayout.BeginVertical("box");
-            
-            GUILayout.Label("Ship Object Pool Status", EditorStyles.boldLabel);
-            GUILayout.Label($"Total Ships: {TotalShips}");
-            GUILayout.Label($"Active Ships: {ActiveShips}");
-            GUILayout.Label($"Available Ships: {AvailableShips}");
-            GUILayout.Label($"Utilization: {(TotalShips > 0 ? (float)ActiveShips / TotalShips * 100f : 0f):F1}%");
-            
-            if (GUILayout.Button("Return All Ships"))
-            {
-                ReturnAllShips();
-            }
-            
-            GUILayout.EndVertical();
-            GUILayout.EndArea();
-        }
-        #endif
     }
     
     /// <summary>

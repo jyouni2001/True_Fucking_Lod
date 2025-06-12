@@ -264,23 +264,23 @@ namespace JY
             Vector3 dockPosition = assignedRoute.GetDockingPosition();
             Quaternion dockRotation = assignedRoute.GetDockingRotation();
             
+            // 정박 지점으로 부드럽게 이동
             yield return StartCoroutine(MoveToPosition(dockPosition, dockRotation));
             
             // 정박 완료
             currentState = ShipState.Docked;
-            // StopMovementEffects(); // 효과 중지 (나중에 활성화 가능)
-            
             OnDockingCompleted?.Invoke(this);
             DebugLog("정박 완료");
         }
         
         private IEnumerator DepartureSequence()
         {
-            // 출발 효과 시작 (나중에 활성화 가능)
-            // StartMovementEffects();
+            // 출발 효과 시작
+            currentState = ShipState.Departing;
+            OnDepartureStarted?.Invoke(this);
             
             // 출발 방향으로 회전
-            Vector3 departureDirection = -transform.forward; // 들어온 방향의 반대
+            Vector3 departureDirection = -transform.forward;
             Quaternion departureRotation = Quaternion.LookRotation(departureDirection);
             
             // 회전
@@ -292,14 +292,32 @@ namespace JY
             {
                 elapsedTime += Time.deltaTime;
                 float progress = elapsedTime / rotationTime;
-                
                 transform.rotation = Quaternion.Slerp(startRotation, departureRotation, progress);
                 yield return null;
             }
             
-            // 멀리 이동 (화면 밖으로)
-            Vector3 departurePosition = transform.position + departureDirection * 100f;
-            yield return StartCoroutine(MoveToPosition(departurePosition, departureRotation));
+            // 출발 경로의 첫 번째 웨이포인트로 이동
+            if (assignedRoute.waypoints.Count > 0)
+            {
+                Vector3 firstWaypoint = assignedRoute.GetWaypointPosition(0);
+                yield return StartCoroutine(MoveToPosition(firstWaypoint, departureRotation));
+            }
+            
+            // 나머지 웨이포인트를 따라 이동
+            currentWaypointIndex = 1;
+            while (currentWaypointIndex < assignedRoute.waypoints.Count)
+            {
+                Vector3 nextWaypoint = assignedRoute.GetWaypointPosition(currentWaypointIndex);
+                Vector3 direction = (nextWaypoint - transform.position).normalized;
+                Quaternion nextRotation = Quaternion.LookRotation(direction);
+                
+                yield return StartCoroutine(MoveToPosition(nextWaypoint, nextRotation));
+                currentWaypointIndex++;
+            }
+            
+            // 마지막 웨이포인트에서 바다 방향으로 이동
+            Vector3 finalPosition = transform.position + transform.forward * 100f;
+            yield return StartCoroutine(MoveToPosition(finalPosition, transform.rotation));
             
             // 출발 완료
             currentState = ShipState.Inactive;
