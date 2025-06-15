@@ -21755,7 +21755,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   allRooms: []
   paymentSystem: {fileID: 2029096738}
-  reputationSystem: {fileID: 0}
+  reputationSystem: {fileID: 1053202367}
   roomTag: Room
   priceMultiplier: 1
   showDebug: 0
@@ -21785,9 +21785,15 @@ MonoBehaviour:
     m_Bits: 0
   floorHeightTolerance: 1
   floorDetectionOffset: -0.5
+  currentScanFloor: 1
+  scanAllFloors: 1
+  maxFloors: 5
   enableSunbedRooms: 1
   sunbedRoomPrice: 100
   sunbedRoomReputation: 50
+  detectedRoomCount: 0
+  currentScanStatus: "\uCD08\uAE30\uD654 \uC911..."
+  lastScanTime: "\uC544\uC9C1 \uC2A4\uCE94\uD558\uC9C0 \uC54A\uC74C"
 --- !u!114 &2029096738
 MonoBehaviour:
   m_ObjectHideFlags: 0

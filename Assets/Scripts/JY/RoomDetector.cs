@@ -5,23 +5,80 @@ using JY;
 
 public class RoomDetector : MonoBehaviour
 {
+    [Header("기본 컴포넌트")]
+    [Tooltip("건축 시스템 참조")]
     [SerializeField] private PlacementSystem placementSystem;
+    
+    [Tooltip("그리드 시스템 참조")]
     [SerializeField] private Grid grid;
+    
+    [Header("디버그 설정")]
+    [Tooltip("디버그 로그 표시 여부")]
     [SerializeField] private bool enableDebugLogs = true;
+    
+    [Header("방 인식 조건")]
+    [Tooltip("방으로 인식하기 위한 최소 벽 개수 (보통 4개면 충분)")]
+    [Range(1, 20)]
     [SerializeField] private int minWalls = 4;
+    
+    [Tooltip("방으로 인식하기 위한 최소 문 개수 (최소 1개는 있어야 함)")]
+    [Range(1, 10)]
     [SerializeField] private int minDoors = 1;
+    
+    [Tooltip("방으로 인식하기 위한 최소 침대 개수 (최소 1개는 있어야 함)")]
+    [Range(1, 10)]
     [SerializeField] private int minBeds = 1;
+    
+    [Header("스캔 설정")]
+    [Tooltip("방 스캔 주기 (초) - 너무 짧으면 성능에 영향")]
+    [Range(0.5f, 10f)]
     [SerializeField] private float scanInterval = 2f;
+    
+    [Tooltip("방 요소들의 레이어 마스크")]
     [SerializeField] private LayerMask roomElementsLayer;
     
-    // Y축 및 바닥 감지 설정
-    [SerializeField] private float floorHeightTolerance = 1f; // Y값 허용 오차 (층별 구분)
-    [SerializeField] private float floorDetectionOffset = -0.5f; // 바닥 감지 오프셋 (벽보다 아래)
+    [Header("층별 감지 설정")]
+    [Tooltip("층 구분을 위한 Y축 허용 오차 (층 높이의 절반 정도 권장)")]
+    [Range(0.1f, 5f)]
+    [SerializeField] private float floorHeightTolerance = 1.5f;
     
-    // Sunbed 방 설정
-    [SerializeField] private bool enableSunbedRooms = true; // Sunbed 방 인식 활성화
-    [SerializeField] private float sunbedRoomPrice = 100f; // Sunbed 방 고정 가격
-    [SerializeField] private float sunbedRoomReputation = 50f; // Sunbed 방 고정 명성도
+    [Tooltip("바닥 감지 오프셋 (벽보다 아래쪽에서 바닥 감지)")]
+    [Range(-2f, 0f)]
+    [SerializeField] private float floorDetectionOffset = -0.5f;
+    
+    [Header("다층 건물 설정")]
+    [Tooltip("현재 스캔할 층 번호 (1층부터 시작, 모든 층 스캔이 꺼져있을 때만 적용)")]
+    [Range(1, 10)]
+    [SerializeField] private int currentScanFloor = 1;
+    
+    [Tooltip("모든 층을 스캔할지 여부 (체크 해제 시 위의 '현재 스캔 층'만 스캔)")]
+    [SerializeField] private bool scanAllFloors = true;
+    
+    [Tooltip("건물의 최대 층수 (성능 최적화를 위한 제한)")]
+    [Range(1, 20)]
+    [SerializeField] private int maxFloors = 5;
+    
+    [Header("선베드 방 설정")]
+    [Tooltip("선베드 방 인식 기능 활성화 (선베드만 있는 독립적인 방도 인식)")]
+    [SerializeField] private bool enableSunbedRooms = true;
+    
+    [Tooltip("선베드 방의 고정 가격 (원)")]
+    [Range(0f, 10000f)]
+    [SerializeField] private float sunbedRoomPrice = 100f;
+    
+    [Tooltip("선베드 방의 고정 명성도")]
+    [Range(0f, 1000f)]
+    [SerializeField] private float sunbedRoomReputation = 50f;
+    
+    [Header("현재 상태 (읽기 전용)")]
+    [Tooltip("현재 감지된 방의 개수")]
+    [SerializeField] private int detectedRoomCount = 0;
+    
+    [Tooltip("현재 스캔 상태 정보")]
+    [SerializeField] private string currentScanStatus = "초기화 중...";
+    
+    [Tooltip("마지막 스캔 시간")]
+    [SerializeField] private string lastScanTime = "아직 스캔하지 않음";
 
     // 3D 그리드로 변경하여 층 구분 지원
     private Dictionary<Vector3Int, RoomCell> roomGrid = new Dictionary<Vector3Int, RoomCell>();
@@ -75,10 +132,20 @@ public class RoomDetector : MonoBehaviour
     private void Start()
     {
         InitializeComponents();
+        InitializeFloorSettings();
         if (isInitialized)
         {
             InvokeRepeating(nameof(ScanForRooms), 1f, scanInterval);
         }
+    }
+    
+    private void InitializeFloorSettings()
+    {
+        // 층 설정 초기화 (임시로 하드코딩, 나중에 FloorConstants 적용)
+        floorHeightTolerance = 1.5f; // 층 구분 허용 오차
+        floorDetectionOffset = -0.5f; // 바닥 감지 오프셋
+        
+        DebugLog($"층 설정 초기화 완료 - 허용 오차: {floorHeightTolerance}, 바닥 오프셋: {floorDetectionOffset}");
     }
 
     private void InitializeComponents()
@@ -90,10 +157,12 @@ public class RoomDetector : MonoBehaviour
         {
             DebugLog("필수 컴포넌트 누락!", true);
             isInitialized = false;
+            currentScanStatus = "초기화 실패 - 필수 컴포넌트 누락";
             return;
         }
 
         isInitialized = true;
+        currentScanStatus = "초기화 완료 - 스캔 대기 중";
     }
 
     private void DebugLog(string message, bool isError = false)
@@ -106,15 +175,72 @@ public class RoomDetector : MonoBehaviour
                 Debug.Log(message);
         }
     }
+    
+    /// <summary>
+    /// 오브젝트가 현재 스캔 대상인지 확인합니다 (층별 필터링)
+    /// </summary>
+    /// <param name="obj">확인할 오브젝트</param>
+    /// <returns>스캔 대상이면 true</returns>
+    private bool ShouldProcessObject(GameObject obj)
+    {
+        if (scanAllFloors) return true; // 모든 층 스캔 모드
+        
+        // 현재 층만 스캔하는 경우
+        float objY = obj.transform.position.y;
+        int objFloor = Mathf.FloorToInt(objY / 3f) + 1; // 3m당 1층으로 계산
+        
+        bool shouldProcess = objFloor == currentScanFloor;
+        
+        if (enableDebugLogs && shouldProcess)
+        {
+            DebugLog($"오브젝트 {obj.name} 스캔 대상 - Y: {objY:F2}, 층: {objFloor}, 현재 스캔 층: {currentScanFloor}");
+        }
+        
+        return shouldProcess;
+    }
+    
+    /// <summary>
+    /// 특정 층만 스캔하도록 설정합니다.
+    /// </summary>
+    /// <param name="floorLevel">스캔할 층 번호 (1층부터 시작)</param>
+    public void SetScanFloor(int floorLevel)
+    {
+        currentScanFloor = Mathf.Clamp(floorLevel, 1, maxFloors);
+        scanAllFloors = false;
+        currentScanStatus = $"{currentScanFloor}층만 스캔 모드로 변경됨";
+        DebugLog($"스캔 층 설정: {currentScanFloor}층");
+    }
+    
+    /// <summary>
+    /// 모든 층을 스캔하도록 설정합니다.
+    /// </summary>
+    public void SetScanAllFloors()
+    {
+        scanAllFloors = true;
+        currentScanStatus = "모든 층 스캔 모드로 변경됨";
+        DebugLog("모든 층 스캔 모드로 설정");
+    }
+    
+    /// <summary>
+    /// 현재 스캔 설정 정보를 반환합니다.
+    /// </summary>
+    /// <returns>스캔 설정 정보</returns>
+    public string GetScanInfo()
+    {
+        return scanAllFloors ? "전체 층 스캔" : $"{currentScanFloor}층만 스캔";
+    }
 
     public void ScanForRooms()
     {
         if (!isInitialized)
         {
+            currentScanStatus = "초기화되지 않음";
             DebugLog("RoomDetector가 초기화되지 않았습니다.", true);
             return;
         }
 
+        currentScanStatus = "스캔 중...";
+        lastScanTime = System.DateTime.Now.ToString("HH:mm:ss");
         DebugLog("방 스캔 시작");
         UpdateGridFromScene();
 
@@ -139,17 +265,19 @@ public class RoomDetector : MonoBehaviour
                     
                     if (isRoomValid)
                     {
-                        // 층 정보 계산 및 설정
+                        // 층 정보 계산 및 설정 (FloorConstants 사용)
                         if (room.floorCells.Count > 0)
                         {
                             var firstFloorCell = room.floorCells[0];
                             if (roomGrid.TryGetValue(firstFloorCell, out RoomCell floorCell))
                             {
-                                room.floorLevel = Mathf.RoundToInt(floorCell.worldHeight / 3f); // 3m당 1층으로 가정
+                                // 층 레벨 계산 (3m당 1층으로 계산)
+                                room.floorLevel = Mathf.FloorToInt(floorCell.worldHeight / 3f) + 1;
                             }
                         }
                         
-                        string roomId = $"Room_F{room.floorLevel}_{room.center.x:F0}_{room.center.z:F0}";
+                        // 고유한 방 ID 생성 (층 정보 + 좌표 + 타임스탬프)
+                        string roomId = $"Room_F{room.floorLevel}_{room.center.x:F0}_{room.center.z:F0}_{System.DateTime.Now.Ticks % 10000}";
                         room.roomId = roomId;
                         newRooms.Add(room);
                         DebugLog($"새로운 방 추가됨: {roomId} (층: {room.floorLevel})");
@@ -173,10 +301,14 @@ public class RoomDetector : MonoBehaviour
         {
             DebugLog($"{newRooms.Count}개의 새로운 방이 감지되어 업데이트를 시작합니다.");
             UpdateRooms(newRooms);
+            detectedRoomCount = detectedRooms.Count;
+            currentScanStatus = $"완료 - {detectedRoomCount}개 방 감지됨";
         }
         else
         {
             DebugLog("감지된 새로운 방이 없습니다.");
+            detectedRoomCount = detectedRooms.Count;
+            currentScanStatus = $"완료 - 변경사항 없음 ({detectedRoomCount}개 방 유지)";
         }
     }
 
@@ -210,10 +342,12 @@ public class RoomDetector : MonoBehaviour
     private void UpdateGridFromScene()
     {
         roomGrid.Clear();
-        DebugLog("그리드 업데이트 시작");
+        DebugLog($"그리드 업데이트 시작 - 스캔 모드: {(scanAllFloors ? "전체 층" : $"{currentScanFloor}층만")}");
 
-        // 각 태그별로 오브젝트 검색 및 3D 위치 사용
+        // 각 태그별로 오브젝트 검색 및 3D 위치 사용 (층별 필터링 적용)
         ProcessTaggedObjects("Floor", (obj) => {
+            // 층별 필터링 적용
+            if (!ShouldProcessObject(obj)) return;
             Vector3Int gridPosition = GetAdjustedGridPosition(obj, floorDetectionOffset);
             if (!roomGrid.ContainsKey(gridPosition))
             {
@@ -228,6 +362,8 @@ public class RoomDetector : MonoBehaviour
         });
 
         ProcessTaggedObjects("Wall", (obj) => {
+            // 층별 필터링 적용
+            if (!ShouldProcessObject(obj)) return;
             Vector3Int gridPosition = GetAdjustedGridPosition(obj, 0f);
             if (!roomGrid.ContainsKey(gridPosition))
             {
@@ -242,6 +378,8 @@ public class RoomDetector : MonoBehaviour
         });
 
         ProcessTaggedObjects("Door", (obj) => {
+            // 층별 필터링 적용
+            if (!ShouldProcessObject(obj)) return;
             Vector3Int gridPosition = GetAdjustedGridPosition(obj, 0f);
             if (!roomGrid.ContainsKey(gridPosition))
             {
@@ -256,6 +394,8 @@ public class RoomDetector : MonoBehaviour
         });
 
         ProcessTaggedObjects("Bed", (obj) => {
+            // 층별 필터링 적용
+            if (!ShouldProcessObject(obj)) return;
             Vector3Int gridPosition = GetAdjustedGridPosition(obj, floorDetectionOffset);
             if (!roomGrid.ContainsKey(gridPosition))
             {
@@ -271,6 +411,8 @@ public class RoomDetector : MonoBehaviour
 
         // Sunbed 태그 처리 추가
         ProcessTaggedObjects("Sunbed", (obj) => {
+            // 층별 필터링 적용
+            if (!ShouldProcessObject(obj)) return;
             Vector3Int gridPosition = GetAdjustedGridPosition(obj, floorDetectionOffset);
             if (!roomGrid.ContainsKey(gridPosition))
             {
@@ -633,7 +775,12 @@ public class RoomDetector : MonoBehaviour
 
     private void CreateRoomGameObject(RoomInfo room)
     {
-        room.gameObject = new GameObject(room.roomId);
+        // 층 정보를 포함한 더 명확한 방 이름 생성
+        string roomName = room.isSunbedRoom ? 
+            $"SunbedRoom_F{room.floorLevel}_{room.center.x:F0}_{room.center.z:F0}" : 
+            $"Room_F{room.floorLevel}_{room.center.x:F0}_{room.center.z:F0}";
+            
+        room.gameObject = new GameObject(roomName);
         room.gameObject.transform.position = room.center;
         room.gameObject.tag = "Room";
 
@@ -662,6 +809,7 @@ public class RoomDetector : MonoBehaviour
         roomCollider.isTrigger = true;
 
         DebugLog($"방 생성: {room.roomId}\n" +
+                 $"- 층: {room.floorLevel}층\n" +
                  $"- 위치: {room.center}\n" +
                  $"- 벽: {room.walls.Count}개\n" +
                  $"- 문: {room.doors.Count}개\n" +
