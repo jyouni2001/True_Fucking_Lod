@@ -17981,11 +17981,12 @@ MonoBehaviour:
     - {fileID: 1327196941}
     - {fileID: 253848992}
     - {fileID: 1208119995}
+    departureWaypoints:
     - {fileID: 1972809099}
     - {fileID: 1899416152}
     dockingPoint: {fileID: 1862185128}
     dockingRotation: {x: 0, y: 0, z: 0}
-    movementSpeed: 5
+    movementSpeed: 60
     rotationSpeed: 2
     speedCurve:
       serializedVersion: 2
@@ -18012,9 +18013,10 @@ MonoBehaviour:
       m_PostInfinity: 2
       m_RotationOrder: 4
     routeColor: {r: 0, g: 0.12644672, b: 1, a: 0}
+    departureRouteColor: {r: 1, g: 0, b: 0, a: 1}
     showWaypoints: 1
     showDockingArea: 1
-  showDebugLogs: 1
+  showDebugLogs: 0
   showGizmos: 1
 --- !u!4 &1696679807
 Transform:

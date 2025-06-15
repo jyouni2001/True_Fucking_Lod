@@ -272,6 +272,50 @@ public class AISpawner : MonoBehaviour
         return aiPool.Count;
     }
     
+    /// <summary>
+    /// 다음 AI 스폰 시간을 분 단위로 반환
+    /// </summary>
+    public float GetNextSpawnTime()
+    {
+        if (spawnTimes.Count == 0) return 0f;
+
+        float currentTime = TimeSystem.Instance.GetCurrentTimeInMinutes();
+        float nextSpawnTime = float.MaxValue;
+
+        // 현재 시간 이후의 가장 가까운 스폰 시간 찾기
+        foreach (int spawnHour in spawnTimes)
+        {
+            float spawnTimeInMinutes = spawnHour * 60f;
+            
+            // 현재 시간보다 늦은 스폰 시간 중 가장 가까운 것
+            if (spawnTimeInMinutes > currentTime && spawnTimeInMinutes < nextSpawnTime)
+            {
+                nextSpawnTime = spawnTimeInMinutes;
+            }
+        }
+
+        // 오늘 남은 스폰 시간이 없으면 내일 첫 번째 스폰 시간을 반환
+        if (nextSpawnTime == float.MaxValue)
+        {
+            nextSpawnTime = spawnTimes[0] * 60f + 1440f; // 다음날 (1440분 = 24시간)
+            
+            if (showDebugInfo)
+            {
+                Debug.Log($"[AISpawner] 오늘 스폰 시간 종료. 내일 {spawnTimes[0]}시에 다음 스폰 예정");
+            }
+        }
+        else
+        {
+            if (showDebugInfo)
+            {
+                int hour = Mathf.FloorToInt(nextSpawnTime / 60f);
+                Debug.Log($"[AISpawner] 다음 스폰 시간: {hour}시 ({nextSpawnTime}분)");
+            }
+        }
+
+        return nextSpawnTime;
+    }
+    
     void OnDestroy()
     {
         // 이벤트 구독 해제

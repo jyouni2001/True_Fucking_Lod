@@ -16,8 +16,11 @@ namespace JY
         [Header("Timing")]
         public float arrivalTime = 480f; // 게임 시간 (분) - 8:00 AM
         
-        [Header("Waypoints")]
+        [Header("Arrival Waypoints")]
         public List<Transform> waypoints = new List<Transform>();
+        
+        [Header("Departure Waypoints")]
+        public List<Transform> departureWaypoints = new List<Transform>();
         
         [Header("Docking")]
         public Transform dockingPoint;
@@ -30,6 +33,7 @@ namespace JY
         
         [Header("Visual Settings")]
         public Color routeColor = Color.blue;
+        public Color departureRouteColor = Color.red;
         public bool showWaypoints = true;
         public bool showDockingArea = true;
         
@@ -66,6 +70,16 @@ namespace JY
                 }
             }
             
+            // 출발 웨이포인트 null 체크
+            for (int i = 0; i < departureWaypoints.Count; i++)
+            {
+                if (departureWaypoints[i] == null)
+                {
+                    Debug.LogWarning($"[ShipRoute] {routeId}: 출발 웨이포인트 {i}가 null입니다.");
+                    return false;
+                }
+            }
+            
             return true;
         }
         
@@ -77,6 +91,18 @@ namespace JY
             if (index >= 0 && index < waypoints.Count && waypoints[index] != null)
             {
                 return waypoints[index].position;
+            }
+            return Vector3.zero;
+        }
+        
+        /// <summary>
+        /// 특정 인덱스의 출발 웨이포인트 위치 가져오기
+        /// </summary>
+        public Vector3 GetDepartureWaypointPosition(int index)
+        {
+            if (index >= 0 && index < departureWaypoints.Count && departureWaypoints[index] != null)
+            {
+                return departureWaypoints[index].position;
             }
             return Vector3.zero;
         }
@@ -110,6 +136,7 @@ namespace JY
             
             float totalDistance = 0f;
             
+            // 도착 경로 거리
             for (int i = 0; i < waypoints.Count - 1; i++)
             {
                 if (waypoints[i] != null && waypoints[i + 1] != null)
@@ -118,10 +145,19 @@ namespace JY
                 }
             }
             
-            // 마지막 웨이포인트에서 정박지까지의 거리 추가
+            // 마지막 웨이포인트에서 정박지까지의 거리
             if (waypoints.Count > 0 && waypoints[waypoints.Count - 1] != null && dockingPoint != null)
             {
                 totalDistance += Vector3.Distance(waypoints[waypoints.Count - 1].position, dockingPoint.position);
+            }
+            
+            // 출발 경로 거리
+            for (int i = 0; i < departureWaypoints.Count - 1; i++)
+            {
+                if (departureWaypoints[i] != null && departureWaypoints[i + 1] != null)
+                {
+                    totalDistance += Vector3.Distance(departureWaypoints[i].position, departureWaypoints[i + 1].position);
+                }
             }
             
             return totalDistance;
@@ -179,9 +215,8 @@ namespace JY
         {
             if (waypoints.Count < 2) return;
             
+            // 도착 경로 그리기
             Gizmos.color = routeColor;
-            
-            // 웨이포인트 연결선 그리기
             for (int i = 0; i < waypoints.Count - 1; i++)
             {
                 if (waypoints[i] != null && waypoints[i + 1] != null)
@@ -191,6 +226,21 @@ namespace JY
                     // 방향 화살표
                     Vector3 direction = (waypoints[i + 1].position - waypoints[i].position).normalized;
                     Vector3 midPoint = Vector3.Lerp(waypoints[i].position, waypoints[i + 1].position, 0.5f);
+                    DrawArrow(midPoint, direction, 2f);
+                }
+            }
+            
+            // 출발 경로 그리기
+            Gizmos.color = departureRouteColor;
+            for (int i = 0; i < departureWaypoints.Count - 1; i++)
+            {
+                if (departureWaypoints[i] != null && departureWaypoints[i + 1] != null)
+                {
+                    Gizmos.DrawLine(departureWaypoints[i].position, departureWaypoints[i + 1].position);
+                    
+                    // 방향 화살표
+                    Vector3 direction = (departureWaypoints[i + 1].position - departureWaypoints[i].position).normalized;
+                    Vector3 midPoint = Vector3.Lerp(departureWaypoints[i].position, departureWaypoints[i + 1].position, 0.5f);
                     DrawArrow(midPoint, direction, 2f);
                 }
             }
@@ -205,6 +255,7 @@ namespace JY
             // 웨이포인트 표시
             if (showWaypoints)
             {
+                // 도착 웨이포인트
                 Gizmos.color = routeColor;
                 for (int i = 0; i < waypoints.Count; i++)
                 {
@@ -214,6 +265,20 @@ namespace JY
                         
                         #if UNITY_EDITOR
                         UnityEditor.Handles.Label(waypoints[i].position + Vector3.up * 2f, $"WP{i}");
+                        #endif
+                    }
+                }
+                
+                // 출발 웨이포인트
+                Gizmos.color = departureRouteColor;
+                for (int i = 0; i < departureWaypoints.Count; i++)
+                {
+                    if (departureWaypoints[i] != null)
+                    {
+                        Gizmos.DrawWireSphere(departureWaypoints[i].position, 1f);
+                        
+                        #if UNITY_EDITOR
+                        UnityEditor.Handles.Label(departureWaypoints[i].position + Vector3.up * 2f, $"DP{i}");
                         #endif
                     }
                 }
