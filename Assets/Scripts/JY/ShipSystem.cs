@@ -11,20 +11,26 @@ namespace JY
     /// </summary>
     public class ShipSystem : MonoBehaviour
     {
-        [Header("Ship System Settings")]
+        [Header("배 시스템 설정")]
         [SerializeField] private bool enableShipSystem = true;
         [SerializeField] private GameObject shipPrefab;
         [SerializeField] private int maxShipCount = 5; // 최대 배 개수
         
-        [Header("Timing Settings")]
+        [Header("시간 설정")]
         [SerializeField] private float spawnTimeBeforeArrival = 5f; // 도착 5분 전 스폰 (분)
         [SerializeField] private float dockingDuration = 30f; // 정박 시간 (분)
         
-        [Header("Route Settings")]
+        [Header("루트 설정")]
         [SerializeField] private List<ShipRoute> shipRoutes = new List<ShipRoute>();
         
-        [Header("Debug")]
-        [SerializeField] private bool showDebugLogs = true;
+        [Header("디버그 설정")]
+        [Tooltip("디버그 로그 표시 여부")]
+        [SerializeField] private bool showDebugLogs = false;
+        
+        [Tooltip("중요한 이벤트만 로그 표시")]
+        [SerializeField] private bool showImportantLogsOnly = true;
+        
+        [Tooltip("기즈모 표시 여부")]
         [SerializeField] private bool showGizmos = true;
         
         // 시스템 참조
@@ -61,6 +67,9 @@ namespace JY
             UpdateActiveShips();
         }
         
+        /// <summary>
+        /// 시스템 초기화
+        /// </summary>
         private void InitializeSystem()
         {
             // 오브젝트 풀 초기화
@@ -71,42 +80,51 @@ namespace JY
             }
             shipPool.Initialize(shipPrefab, maxShipCount);
             
-            DebugLog("Ship System 초기화 완료");
+            DebugLog("배 시스템 초기화 완료", true);
         }
         
+        /// <summary>
+        /// TimeSystem 연결 설정
+        /// </summary>
         private void SetupTimeSystemConnection()
         {
             // TimeSystem 찾기
             timeSystem = FindObjectOfType<TimeSystem>();
             if (timeSystem == null)
             {
-                Debug.LogError("[ShipSystem] TimeSystem을 찾을 수 없습니다!");
+                DebugLog("TimeSystem을 찾을 수 없습니다!", true);
                 enableShipSystem = false;
                 return;
             }
             
-            DebugLog("TimeSystem 연결 완료");
+            DebugLog("TimeSystem 연결 완료", true);
         }
 
+        /// <summary>
+        /// AISpawner 연결 설정
+        /// </summary>
         private void SetupAISpawnerConnection()
         {
             // AISpawner 찾기
             aiSpawner = FindObjectOfType<AISpawner>();
             if (aiSpawner == null)
             {
-                Debug.LogError("[ShipSystem] AISpawner를 찾을 수 없습니다!");
+                DebugLog("AISpawner를 찾을 수 없습니다!", true);
                 enableShipSystem = false;
                 return;
             }
             
-            DebugLog("AISpawner 연결 완료");
+            DebugLog("AISpawner 연결 완료", true);
         }
         
+        /// <summary>
+        /// 배 스케줄 생성
+        /// </summary>
         private void GenerateShipSchedules()
         {
             if (shipRoutes.Count == 0)
             {
-                DebugLog("설정된 배 루트가 없습니다.");
+                DebugLog("설정된 배 루트가 없습니다.", true);
                 return;
             }
             
@@ -123,13 +141,16 @@ namespace JY
                     
                     var schedule = new ShipSchedule(route);
                     shipSchedules[route.routeId] = schedule;
-                    DebugLog($"배 스케줄 생성: {route.routeId} (도착 시간: {aiSpawnTime}분)");
+                    DebugLog($"배 스케줄 생성: {route.routeId} (도착 시간: {aiSpawnTime}분)", showImportantLogsOnly);
                 }
             }
             
-            DebugLog($"총 {shipSchedules.Count}개의 배 스케줄 생성됨");
+            DebugLog($"총 {shipSchedules.Count}개의 배 스케줄 생성됨", true);
         }
         
+        /// <summary>
+        /// 배 스케줄 확인 및 처리
+        /// </summary>
         private void CheckShipSchedules()
         {
             if (timeSystem == null) return;
@@ -150,7 +171,7 @@ namespace JY
                     // 배가 비활성 상태가 되면 (출발 완료) 스케줄 리셋
                     if (schedule.shipController.CurrentState == ShipState.Inactive)
                     {
-                        DebugLog($"배 출발 완료 감지 - 풀로 반환: {schedule.route.routeId}");
+                        DebugLog($"배 출발 완료 감지 - 풀로 반환: {schedule.route.routeId}", true);
                         
                         // 활성 배 목록에서 제거
                         activeShips.Remove(schedule.shipController);
@@ -165,18 +186,24 @@ namespace JY
             }
         }
         
+        /// <summary>
+        /// 배를 스폰해야 하는지 확인
+        /// </summary>
         private bool ShouldSpawnShip(ShipSchedule schedule, float currentTime)
         {
             float spawnTime = schedule.arrivalTime - spawnTimeBeforeArrival;
             return currentTime >= spawnTime && currentTime < schedule.arrivalTime;
         }
         
+        /// <summary>
+        /// 배 스폰 처리
+        /// </summary>
         private void SpawnShip(ShipSchedule schedule)
         {
             GameObject shipObj = shipPool.GetShip();
             if (shipObj == null)
             {
-                DebugLog("사용 가능한 배가 없습니다.");
+                DebugLog("사용 가능한 배가 없습니다.", true);
                 return;
             }
             
@@ -197,106 +224,119 @@ namespace JY
             // 활성 배 목록에 추가
             activeShips.Add(shipController);
             
-            DebugLog($"배 스폰됨: {schedule.route.routeId}");
+            DebugLog($"배 스폰됨: {schedule.route.routeId}", true);
+            
+            // 이벤트 발생
             OnShipSpawned?.Invoke(shipController);
         }
         
+        /// <summary>
+        /// 스케줄 리셋 및 업데이트
+        /// </summary>
         private void ResetAndUpdateSchedule(ShipSchedule schedule)
         {
             // 스케줄 리셋
             schedule.Reset();
             
-            // 다음 AI 스폰 시간 가져오기
-            if (aiSpawner != null)
-            {
-                float nextAISpawnTime = aiSpawner.GetNextSpawnTime();
-                schedule.route.arrivalTime = nextAISpawnTime;
-                schedule.arrivalTime = nextAISpawnTime;
-                
-                DebugLog($"스케줄 업데이트: {schedule.route.routeId} - 다음 도착 시간: {nextAISpawnTime}분");
-            }
-            else
-            {
-                DebugLog($"AISpawner가 없어 스케줄을 업데이트할 수 없습니다: {schedule.route.routeId}");
-            }
+            // 다음 AI 스폰 시간으로 업데이트
+            float nextAISpawnTime = aiSpawner.GetNextSpawnTime();
+            schedule.route.arrivalTime = nextAISpawnTime;
+            schedule.arrivalTime = nextAISpawnTime;
+            
+            DebugLog($"스케줄 업데이트: {schedule.route.routeId} (다음 도착 시간: {nextAISpawnTime}분)", showImportantLogsOnly);
         }
         
+        /// <summary>
+        /// 활성 배 상태 업데이트
+        /// </summary>
         private void UpdateActiveShips()
         {
-            for (int i = activeShips.Count - 1; i >= 0; i--)
-            {
-                if (activeShips[i] == null)
-                {
-                    activeShips.RemoveAt(i);
-                }
-            }
+            // 현재는 개별 배가 자체적으로 상태를 관리하므로 특별한 처리 없음
+            // 필요시 여기서 배들의 상태를 모니터링하거나 추가 로직 구현 가능
         }
         
+        /// <summary>
+        /// 루트 추가
+        /// </summary>
         public void AddRoute(ShipRoute route)
         {
-            if (route.IsValid())
+            if (route != null && !shipRoutes.Contains(route))
             {
                 shipRoutes.Add(route);
-                var schedule = new ShipSchedule(route);
-                shipSchedules[route.routeId] = schedule;
-                DebugLog($"새 루트 추가: {route.routeId}");
+                DebugLog($"루트 추가됨: {route.routeId}", true);
             }
         }
         
+        /// <summary>
+        /// 루트 제거
+        /// </summary>
         public void RemoveRoute(string routeId)
         {
             shipRoutes.RemoveAll(r => r.routeId == routeId);
-            if (shipSchedules.ContainsKey(routeId))
-            {
-                shipSchedules.Remove(routeId);
-                DebugLog($"루트 제거: {routeId}");
-            }
+            shipSchedules.Remove(routeId);
+            DebugLog($"루트 제거됨: {routeId}", true);
         }
         
+        /// <summary>
+        /// 활성 배 목록 반환
+        /// </summary>
         public List<ShipController> GetActiveShips()
         {
             return new List<ShipController>(activeShips);
         }
         
+        /// <summary>
+        /// 특정 루트의 스케줄 반환
+        /// </summary>
         public ShipSchedule GetSchedule(string routeId)
         {
             return shipSchedules.ContainsKey(routeId) ? shipSchedules[routeId] : null;
         }
         
-        private void DebugLog(string message)
+        #region 디버그 메서드
+        
+        /// <summary>
+        /// 디버그 로그 출력
+        /// </summary>
+        private void DebugLog(string message, bool isImportant = false)
         {
-            if (showDebugLogs)
-            {
-                Debug.Log($"[ShipSystem] {message}");
-            }
+            if (!showDebugLogs) return;
+            
+            if (showImportantLogsOnly && !isImportant) return;
+            
+            Debug.Log($"[ShipSystem] {message}");
         }
         
+        /// <summary>
+        /// 기즈모 그리기
+        /// </summary>
         private void OnDrawGizmos()
         {
-            if (!showGizmos || shipRoutes == null) return;
+            if (!showGizmos) return;
             
+            // 각 루트의 기즈모 그리기
             foreach (var route in shipRoutes)
             {
-                route.DrawGizmos();
+                if (route != null)
+                {
+                    route.DrawGizmos();
+                }
             }
         }
         
-        // 시스템 정리
+        #endregion
+        
         private void OnDestroy()
         {
-            foreach (var ship in activeShips)
-            {
-                if (ship != null && ship.gameObject != null)
-                {
-                    shipPool.ReturnShip(ship.gameObject);
-                }
-            }
-            activeShips.Clear();
+            // 이벤트 정리
+            OnShipSpawned = null;
+            OnShipDocked = null;
+            OnShipDeparted = null;
         }
     }
     
     /// <summary>
-    /// 배 스케줄 정보
+    /// 배 스케줄 클래스
     /// </summary>
     [System.Serializable]
     public class ShipSchedule
@@ -310,9 +350,13 @@ namespace JY
         {
             route = shipRoute;
             arrivalTime = shipRoute.arrivalTime;
-            Reset();
+            isShipSpawned = false;
+            shipController = null;
         }
         
+        /// <summary>
+        /// 스케줄 리셋
+        /// </summary>
         public void Reset()
         {
             isShipSpawned = false;

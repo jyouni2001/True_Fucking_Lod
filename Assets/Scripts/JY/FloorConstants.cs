@@ -1,9 +1,11 @@
 using UnityEngine;
 
-/// <summary>
-/// 다층 건물 시스템을 위한 층 관련 상수 정의
-/// </summary>
-public static class FloorConstants 
+namespace JY
+{
+    /// <summary>
+    /// 다층 건물 시스템을 위한 층 관련 상수 정의
+    /// </summary>
+    public static class FloorConstants 
 {
     // 층간 높이 (건축 시스템과 동일하게 맞춤)
     public const float FLOOR_HEIGHT = 3f;
@@ -66,5 +68,6 @@ public static class FloorConstants
         Bounds adjustedBounds = new Bounds();
         adjustedBounds.SetMinMax(min, max);
         return adjustedBounds;
+    }
     }
 } 

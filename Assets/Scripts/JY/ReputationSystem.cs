@@ -1,39 +1,57 @@
 using UnityEngine;
-using System.Collections.Generic;
 using TMPro;
+using System.Collections.Generic;
 
 namespace JY
 {
     /// <summary>
-    /// 플레이어의 명성도를 관리하는 시스템
-    /// AI가 방 사용을 완료하고 결제할 때마다 명성도가 증가합니다.
+    /// 플레이어의 명성도 시스템을 관리하는 클래스
+    /// 명성도 증감, 등급 관리, UI 업데이트를 담당
     /// </summary>
     public class ReputationSystem : MonoBehaviour
     {
         [Header("명성도 설정")]
+        [Tooltip("현재 플레이어의 명성도 점수")]
         [SerializeField] private int currentReputation = 0;
+        
         [Header("UI 설정")]
-        [SerializeField] private TextMeshProUGUI reputationText; // Inspector에서 할당
+        [Tooltip("명성도를 표시할 UI 텍스트 컴포넌트")]
+        [SerializeField] private TextMeshProUGUI reputationText; // 인스펙터에서 할당
+        
+        [Tooltip("UI 텍스트 형식")]
         [SerializeField] private string textFormat = "Grade: {0} {1}"; // {0}: 명성도, {1}: 등급
         
         [Header("등급 설정")]
+        [Tooltip("각 등급에 필요한 최소 명성도")]
         [SerializeField] private int[] gradeThresholds = {0, 100, 300, 500, 1000, 2000, 3000};
+        
+        [Tooltip("등급 이름 목록")]
         [SerializeField] private string[] gradeNames = {"Ground", "Tier1", "Tier2", "Tier3", "Tier4", "Tier5", "Tier6"};
         
-        [Header("디버그")]
-        [SerializeField] private bool showDebugLogs = true;
+        [Header("디버그 설정")]
+        [Tooltip("디버그 로그 표시 여부")]
+        [SerializeField] private bool showDebugLogs = false;
+        
+        [Tooltip("중요한 이벤트만 로그 표시")]
+        [SerializeField] private bool showImportantLogsOnly = true;
+        
+        [Tooltip("명성도 변경 기록 표시")]
+        [SerializeField] private bool showReputationChanges = true;
+        
+        [Header("로그 정보")]
+        [Tooltip("명성도 변경 기록")]
         [SerializeField] private List<string> reputationLogs = new List<string>();
         
+        // 싱글톤 인스턴스
         public static ReputationSystem Instance { get; private set; }
         
-        // 명성도 변경 이벤트
-        public System.Action<int> OnReputationChanged;
-        
+        // 공개 속성
         public int CurrentReputation => currentReputation;
+        public string CurrentGrade => GetCurrentGrade();
         
-        void Awake()
+        private void Awake()
         {
-            // 싱글톤 패턴
+            // 싱글톤 패턴 구현
             if (Instance == null)
             {
                 Instance = this;
@@ -45,65 +63,168 @@ namespace JY
             }
         }
         
-        void Start()
+        private void Start()
         {
             // 시작할 때 UI 업데이트
             UpdateUI();
+            DebugLog("명성도 시스템 초기화 완료", true);
         }
         
         /// <summary>
-        /// AI가 방 사용을 완료했을 때 방 명성도를 기반으로 명성도를 증가시킵니다.
+        /// 명성도 추가
         /// </summary>
-        /// <param name="aiName">AI 이름</param>
-        /// <param name="roomID">사용한 방 ID</param>
-        /// <param name="roomReputation">방의 총 명성도</param>
-        public void AddReputation(string aiName, string roomID, int roomReputation)
+        /// <param name="amount">추가할 명성도</param>
+        /// <param name="reason">명성도 증가 이유</param>
+        public void AddReputation(int amount, string reason = "")
         {
-            Debug.Log($"[명성도 시스템] AddReputation 호출됨 - AI: {aiName}, 방: {roomID}, 명성도: {roomReputation}");
+            if (amount <= 0) return;
             
-            // 방 명성도를 그대로 명성도 증가량으로 사용
-            int reputationGain = Mathf.Max(1, roomReputation); // 최소 1 보장
+            string prevGrade = GetCurrentGrade();
+            currentReputation += amount;
+            string newGrade = GetCurrentGrade();
             
-            int oldReputation = currentReputation;
-            currentReputation += reputationGain;
+            // 등급이 변경되었는지 확인
+            bool gradeChanged = prevGrade != newGrade;
             
-            // 로그 기록
-            string logMessage = $"{aiName}이(가) 방 {roomID} 사용 완료 - 방 명성도 기반 +{reputationGain} (이전: {oldReputation} -> 현재: {currentReputation})";
-            reputationLogs.Add(logMessage);
-            
-            Debug.Log($"[명성도 시스템] {logMessage}");
-            
-            // UI 업데이트
-            UpdateUI();
-            
-            // 이벤트 발생
-            OnReputationChanged?.Invoke(currentReputation);
-            
-            Debug.Log($"[명성도 시스템] 명성도 증가 완료 - 최종 명성도: {currentReputation}");
-        }
-        
-        /// <summary>
-        /// 현재 명성도를 직접 설정합니다. (치트나 세이브/로드용)
-        /// </summary>
-        /// <param name="reputation">설정할 명성도</param>
-        public void SetReputation(int reputation)
-        {
-            int oldReputation = currentReputation;
-            currentReputation = Mathf.Max(0, reputation);
-            
-            if (showDebugLogs)
+            if (showReputationChanges)
             {
-                Debug.Log($"[명성도 시스템] 명성도 직접 설정: {oldReputation} -> {currentReputation}");
+                string logMessage = $"명성도 +{amount} (총 {currentReputation})";
+                if (!string.IsNullOrEmpty(reason))
+                {
+                    logMessage += $" - {reason}";
+                }
+                
+                reputationLogs.Add(logMessage);
+                
+                // 로그 목록 크기 제한 (최근 20개만 유지)
+                if (reputationLogs.Count > 20)
+                {
+                    reputationLogs.RemoveAt(0);
+                }
             }
             
-            // UI 업데이트
-            UpdateUI();
+            DebugLog($"명성도 증가: +{amount} (총 {currentReputation}) - {reason}", gradeChanged || showImportantLogsOnly);
             
-            OnReputationChanged?.Invoke(currentReputation);
+            if (gradeChanged)
+            {
+                DebugLog($"등급 상승! {prevGrade} → {newGrade}", true);
+            }
+            
+            UpdateUI();
         }
         
         /// <summary>
-        /// UI 텍스트를 업데이트합니다.
+        /// 명성도 감소
+        /// </summary>
+        /// <param name="amount">감소할 명성도</param>
+        /// <param name="reason">명성도 감소 이유</param>
+        public void RemoveReputation(int amount, string reason = "")
+        {
+            if (amount <= 0) return;
+            
+            string prevGrade = GetCurrentGrade();
+            currentReputation = Mathf.Max(0, currentReputation - amount);
+            string newGrade = GetCurrentGrade();
+            
+            // 등급이 변경되었는지 확인
+            bool gradeChanged = prevGrade != newGrade;
+            
+            if (showReputationChanges)
+            {
+                string logMessage = $"명성도 -{amount} (총 {currentReputation})";
+                if (!string.IsNullOrEmpty(reason))
+                {
+                    logMessage += $" - {reason}";
+                }
+                
+                reputationLogs.Add(logMessage);
+                
+                // 로그 목록 크기 제한 (최근 20개만 유지)
+                if (reputationLogs.Count > 20)
+                {
+                    reputationLogs.RemoveAt(0);
+                }
+            }
+            
+            DebugLog($"명성도 감소: -{amount} (총 {currentReputation}) - {reason}", gradeChanged || showImportantLogsOnly);
+            
+            if (gradeChanged)
+            {
+                DebugLog($"등급 하락! {prevGrade} → {newGrade}", true);
+            }
+            
+            UpdateUI();
+        }
+        
+        /// <summary>
+        /// 명성도 직접 설정
+        /// </summary>
+        /// <param name="amount">설정할 명성도</param>
+        public void SetReputation(int amount)
+        {
+            string prevGrade = GetCurrentGrade();
+            currentReputation = Mathf.Max(0, amount);
+            string newGrade = GetCurrentGrade();
+            
+            bool gradeChanged = prevGrade != newGrade;
+            
+            DebugLog($"명성도 설정: {currentReputation}", true);
+            
+            if (gradeChanged)
+            {
+                DebugLog($"등급 변경: {prevGrade} → {newGrade}", true);
+            }
+            
+            UpdateUI();
+        }
+        
+        /// <summary>
+        /// 현재 등급 반환
+        /// </summary>
+        public string GetCurrentGrade()
+        {
+            for (int i = gradeThresholds.Length - 1; i >= 0; i--)
+            {
+                if (currentReputation >= gradeThresholds[i])
+                {
+                    return gradeNames[i];
+                }
+            }
+            return gradeNames[0]; // 기본값
+        }
+        
+        /// <summary>
+        /// 다음 등급까지 필요한 명성도 반환
+        /// </summary>
+        public int GetReputationToNextGrade()
+        {
+            for (int i = 0; i < gradeThresholds.Length; i++)
+            {
+                if (currentReputation < gradeThresholds[i])
+                {
+                    return gradeThresholds[i] - currentReputation;
+                }
+            }
+            return 0; // 최고 등급
+        }
+        
+        /// <summary>
+        /// 특정 등급에 필요한 명성도 반환
+        /// </summary>
+        public int GetRequiredReputationForGrade(string gradeName)
+        {
+            for (int i = 0; i < gradeNames.Length; i++)
+            {
+                if (gradeNames[i] == gradeName)
+                {
+                    return gradeThresholds[i];
+                }
+            }
+            return 0;
+        }
+        
+        /// <summary>
+        /// UI 업데이트
         /// </summary>
         private void UpdateUI()
         {
@@ -114,59 +235,20 @@ namespace JY
             }
         }
         
+        #region 디버그 메서드
+        
         /// <summary>
-        /// 현재 명성도에 따른 등급을 반환합니다.
+        /// 디버그 로그 출력
         /// </summary>
-        /// <returns>현재 등급 이름</returns>
-        public string GetCurrentGrade()
+        private void DebugLog(string message, bool isImportant = false)
         {
-            for (int i = gradeThresholds.Length - 1; i >= 0; i--)
-            {
-                if (currentReputation >= gradeThresholds[i])
-                {
-                    if (i < gradeNames.Length)
-                    {
-                        return gradeNames[i];
-                    }
-                    break;
-                }
-            }
+            if (!showDebugLogs) return;
             
-            // 기본값 (첫 번째 등급)
-            return gradeNames.Length > 0 ? gradeNames[0] : "등급 없음";
+            if (showImportantLogsOnly && !isImportant) return;
+            
+            Debug.Log($"[ReputationSystem] {message}");
         }
         
-        /// <summary>
-        /// 다음 등급까지 필요한 명성도를 반환합니다.
-        /// </summary>
-        /// <returns>다음 등급까지 필요한 명성도 (최고 등급이면 -1)</returns>
-        public int GetReputationToNextGrade()
-        {
-            for (int i = 0; i < gradeThresholds.Length; i++)
-            {
-                if (currentReputation < gradeThresholds[i])
-                {
-                    return gradeThresholds[i] - currentReputation;
-                }
-            }
-            return -1; // 이미 최고 등급
-        }
-        
-        /// <summary>
-        /// 명성도 로그를 초기화합니다.
-        /// </summary>
-        public void ClearLogs()
-        {
-            reputationLogs.Clear();
-        }
-        
-        /// <summary>
-        /// 현재까지의 명성도 로그를 반환합니다.
-        /// </summary>
-        /// <returns>명성도 로그 리스트</returns>
-        public List<string> GetReputationLogs()
-        {
-            return new List<string>(reputationLogs);
-        }
+        #endregion
     }
 }

@@ -1,8 +1,11 @@
 using UnityEngine;
 using System.Collections.Generic;
 using System.Collections;
+using JY;
 
-public class CounterManager : MonoBehaviour
+namespace JY
+{
+    public class CounterManager : MonoBehaviour
 {
     [Header("Queue Settings")]
     public float queueSpacing = 2f;           // AI 간격
@@ -271,5 +274,6 @@ public class CounterManager : MonoBehaviour
                 Gizmos.DrawLine(queuePos, nextPos);
             }
         }
+    }
     }
 }

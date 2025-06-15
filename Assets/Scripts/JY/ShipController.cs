@@ -5,23 +5,29 @@ namespace JY
 {
     /// <summary>
     /// 개별 배의 움직임과 상태 제어
+    /// 웨이포인트 기반 이동, 정박, 출발 시퀀스 관리
     /// </summary>
     public class ShipController : MonoBehaviour
     {
-        [Header("Ship Status")]
+        [Header("배 상태")]
         [SerializeField] private ShipState currentState = ShipState.Inactive;
         [SerializeField] private string shipId;
         
-        [Header("Movement")]
+        [Header("이동 설정")]
         [SerializeField] private float currentSpeed = 0f;
         [SerializeField] private int currentWaypointIndex = 0;
         [SerializeField] private float waypointReachDistance = 2f;
         [SerializeField] private bool hasCompletedRoute = false;
         
-        // [Header("Visual Effects")] // 시각적 효과는 나중에 추가 가능
-        // [SerializeField] private ParticleSystem wakeEffect; // 물보라 효과
-        // [SerializeField] private AudioSource shipAudio; // 배 소리
-        // [SerializeField] private Transform shipModel; // 배 모델
+        [Header("디버그 설정")]
+        [Tooltip("디버그 로그 표시 여부")]
+        [SerializeField] private bool showDebugLogs = false;
+        
+        [Tooltip("중요한 이벤트만 로그 표시")]
+        [SerializeField] private bool showImportantLogsOnly = true;
+        
+        [Tooltip("이동 상태 로그 표시")]
+        [SerializeField] private bool showMovementLogs = false;
         
         // 시스템 참조
         private ShipRoute assignedRoute;
@@ -32,7 +38,7 @@ namespace JY
         private Quaternion targetRotation;
         private Coroutine movementCoroutine;
         
-        // 상태
+        // 상태 속성
         public ShipState CurrentState => currentState;
         public string ShipId => shipId;
         public ShipRoute AssignedRoute => assignedRoute;
@@ -47,36 +53,7 @@ namespace JY
         private void Awake()
         {
             shipId = System.Guid.NewGuid().ToString();
-            // SetupComponents(); // 시각적 효과 컴포넌트 설정은 나중에 추가 가능
         }
-        
-        // 시각적 효과 컴포넌트 설정 (나중에 활성화 가능)
-        /*
-        private void SetupComponents()
-        {
-            // 오디오 소스 설정
-            if (shipAudio == null)
-            {
-                shipAudio = GetComponent<AudioSource>();
-                if (shipAudio == null)
-                {
-                    shipAudio = gameObject.AddComponent<AudioSource>();
-                }
-            }
-            
-            // 파티클 시스템 찾기
-            if (wakeEffect == null)
-            {
-                wakeEffect = GetComponentInChildren<ParticleSystem>();
-            }
-            
-            // 배 모델 찾기
-            if (shipModel == null)
-            {
-                shipModel = transform.GetChild(0); // 첫 번째 자식을 모델로 가정
-            }
-        }
-        */
         
         /// <summary>
         /// 배 초기화
@@ -106,7 +83,7 @@ namespace JY
                 }
             }
             
-            DebugLog($"배 초기화 완료: {route.routeId}, 시작 위치: Way0");
+            DebugLog($"배 초기화 완료: {route.routeId}, 시작 위치: Way0", true);
         }
         
         /// <summary>
@@ -116,7 +93,7 @@ namespace JY
         {
             if (assignedRoute == null || !assignedRoute.IsValid())
             {
-                DebugLog("유효하지 않은 루트입니다.");
+                DebugLog("유효하지 않은 루트입니다.", true);
                 return;
             }
             
@@ -124,7 +101,7 @@ namespace JY
             currentWaypointIndex = 1; // Way0에서 시작하므로 다음은 Way1
             hasCompletedRoute = false;
             
-            DebugLog("여행 시작 - Way1으로 이동");
+            DebugLog("여행 시작 - Way1으로 이동", true);
             MoveToNextWaypoint();
         }
         
@@ -135,7 +112,7 @@ namespace JY
         {
             if (currentState != ShipState.Moving)
             {
-                DebugLog($"정박 불가 - 현재 상태: {currentState}");
+                DebugLog($"정박 불가 - 현재 상태: {currentState}", true);
                 return;
             }
             
@@ -150,7 +127,7 @@ namespace JY
             movementCoroutine = StartCoroutine(MoveToDockingPoint());
             
             OnDockingStarted?.Invoke(this);
-            DebugLog("정박 시작");
+            DebugLog("정박 시작", true);
         }
         
         /// <summary>
@@ -160,7 +137,7 @@ namespace JY
         {
             if (currentState != ShipState.Docked) 
             {
-                DebugLog($"출발 불가 - 현재 상태: {currentState}");
+                DebugLog($"출발 불가 - 현재 상태: {currentState}", true);
                 return;
             }
             
@@ -175,7 +152,7 @@ namespace JY
             movementCoroutine = StartCoroutine(DepartureSequence());
             
             OnDepartureStarted?.Invoke(this);
-            DebugLog("출발 시작");
+            DebugLog("출발 시작", true);
         }
         
         /// <summary>
@@ -196,294 +173,274 @@ namespace JY
             currentSpeed = 0f;
             hasCompletedRoute = false;
             
-            // 효과 중지 (나중에 활성화 가능)
-            // StopMovementEffects();
-            
-            // 참조 해제
-            assignedRoute = null;
-            shipSystem = null;
-            
-            DebugLog("배 리셋 완료");
+            DebugLog("배 리셋 완료", showImportantLogsOnly);
         }
         
+        /// <summary>
+        /// 다음 웨이포인트로 이동
+        /// </summary>
         private void MoveToNextWaypoint()
         {
-            if (assignedRoute == null)
+            if (assignedRoute == null || currentWaypointIndex >= assignedRoute.waypoints.Count)
             {
-                DebugLog("루트가 없습니다.");
-                return;
-            }
-            
-            if (currentWaypointIndex >= assignedRoute.waypoints.Count)
-            {
-                // 모든 웨이포인트 통과 완료 - 정박지점으로 이동
-                hasCompletedRoute = true;
-                DebugLog("모든 웨이포인트 통과 완료 - 정박지점으로 이동");
-                
-                // 자동으로 정박 시작
+                DebugLog("웨이포인트 경로 완료 - 정박 시작", true);
                 StartDocking();
                 return;
             }
             
-            targetPosition = assignedRoute.GetWaypointPosition(currentWaypointIndex);
-            targetPosition = new Vector3(targetPosition.x, 0.5f, targetPosition.z);
-            
-            // 다음 웨이포인트 방향으로 회전 설정
-            Vector3 direction = (targetPosition - transform.position).normalized;
-            if (direction != Vector3.zero)
+            Transform waypoint = assignedRoute.waypoints[currentWaypointIndex];
+            if (waypoint == null)
             {
-                targetRotation = Quaternion.LookRotation(direction);
-            }
-            else
-            {
-                targetRotation = transform.rotation;
+                DebugLog($"웨이포인트 {currentWaypointIndex}가 null입니다.", true);
+                currentWaypointIndex++;
+                MoveToNextWaypoint();
+                return;
             }
             
-            DebugLog($"Way{currentWaypointIndex}로 이동 시작");
+            Vector3 destination = waypoint.position;
+            Vector3 direction = (destination - transform.position).normalized;
+            Quaternion targetRotation = direction != Vector3.zero ? Quaternion.LookRotation(direction) : transform.rotation;
             
-            // 이동 코루틴 시작
+            DebugLog($"웨이포인트 {currentWaypointIndex}로 이동 시작: {waypoint.name}", showMovementLogs);
+            
             if (movementCoroutine != null)
             {
                 StopCoroutine(movementCoroutine);
             }
-            movementCoroutine = StartCoroutine(MoveToPosition(targetPosition, targetRotation));
+            
+            movementCoroutine = StartCoroutine(MoveToPosition(destination, targetRotation));
         }
         
+        /// <summary>
+        /// 지정된 위치로 부드럽게 이동
+        /// </summary>
         private IEnumerator MoveToPosition(Vector3 destination, Quaternion rotation)
         {
             Vector3 startPosition = transform.position;
             Quaternion startRotation = transform.rotation;
             
             float distance = Vector3.Distance(startPosition, destination);
+            float baseSpeed = assignedRoute.movementSpeed;
+            float journeyTime = distance / baseSpeed;
             
-            // 거리가 너무 가까우면 즉시 완료
-            if (distance < 0.1f)
-            {
-                transform.position = destination;
-                transform.rotation = rotation;
-                OnWaypointReached?.Invoke(this);
-                currentWaypointIndex++;
-                DebugLog($"웨이포인트 {currentWaypointIndex - 1} 도달 (즉시)");
-                
-                if (currentState == ShipState.Moving)
-                {
-                    MoveToNextWaypoint();
-                }
-                yield break;
-            }
-            
-            float journeyTime = distance / assignedRoute.movementSpeed;
             float elapsedTime = 0f;
-            
-            DebugLog($"이동 시작: 거리={distance:F1}, 예상시간={journeyTime:F1}초");
             
             while (elapsedTime < journeyTime)
             {
                 elapsedTime += Time.deltaTime;
-                float progress = Mathf.Clamp01(elapsedTime / journeyTime);
+                float progress = elapsedTime / journeyTime;
                 
-                // 속도 곡선 적용
-                float curveValue = assignedRoute.speedCurve.Evaluate(progress);
+                // 부드러운 이동 곡선 적용
+                float smoothProgress = Mathf.SmoothStep(0f, 1f, progress);
                 
                 // 위치 보간
-                transform.position = Vector3.Lerp(startPosition, destination, progress);
+                Vector3 currentPos = Vector3.Lerp(startPosition, destination, smoothProgress);
+                currentPos.y = 0.5f; // 바닥에서 약간 위로 유지
+                transform.position = currentPos;
                 
                 // 회전 보간
-                transform.rotation = Quaternion.Slerp(startRotation, rotation, progress);
+                transform.rotation = Quaternion.Slerp(startRotation, rotation, smoothProgress);
                 
-                // 현재 속도 계산
-                currentSpeed = assignedRoute.movementSpeed * curveValue;
+                // 현재 속도 계산 (시각적 표시용)
+                currentSpeed = baseSpeed * (1f - Mathf.Abs(0.5f - smoothProgress) * 0.5f);
                 
                 yield return null;
             }
             
-            // 최종 위치 설정
+            // 최종 위치 및 회전 설정
+            destination.y = 0.5f;
             transform.position = destination;
             transform.rotation = rotation;
+            currentSpeed = 0f;
             
             // 웨이포인트 도달 처리
             OnWaypointReached?.Invoke(this);
+            DebugLog($"웨이포인트 {currentWaypointIndex} 도달: {assignedRoute.waypoints[currentWaypointIndex].name}", showMovementLogs);
+            
             currentWaypointIndex++;
             
-            DebugLog($"웨이포인트 {currentWaypointIndex - 1} 도달");
-            
-            // 다음 웨이포인트로 이동
-            if (currentState == ShipState.Moving)
-            {
-                MoveToNextWaypoint();
-            }
+            // 다음 웨이포인트로 이동 또는 정박 시작
+            yield return new WaitForSeconds(0.2f); // 짧은 대기
+            MoveToNextWaypoint();
         }
         
+        /// <summary>
+        /// 정박지로 이동
+        /// </summary>
         private IEnumerator MoveToDockingPoint()
         {
-            Vector3 dockPosition = assignedRoute.GetDockingPosition();
-            dockPosition = new Vector3(dockPosition.x, 0.5f, dockPosition.z);
-            Quaternion dockRotation = assignedRoute.GetDockingRotation();
+            if (assignedRoute.dockingPoint == null)
+            {
+                DebugLog("정박지가 설정되지 않았습니다.", true);
+                yield break;
+            }
             
-            DebugLog("정박지점으로 이동 중");
+            Vector3 dockingPosition = assignedRoute.dockingPoint.position;
+            Vector3 direction = (dockingPosition - transform.position).normalized;
+            Quaternion dockingRotation = direction != Vector3.zero ? Quaternion.LookRotation(direction) : transform.rotation;
             
-            // 정박 지점으로 부드럽게 이동
-            yield return StartCoroutine(MoveToPosition(dockPosition, dockRotation));
+            DebugLog("정박지로 이동 중", showMovementLogs);
+            
+            yield return StartCoroutine(MoveToPosition(dockingPosition, dockingRotation));
             
             // 정박 완료
             currentState = ShipState.Docked;
             OnDockingCompleted?.Invoke(this);
-            DebugLog("정박 완료 - 대기 시작");
+            DebugLog("정박 완료 - 대기 시작", true);
             
-            // 대기 (게임 시간)
-            yield return StartCoroutine(WaitForDockingDuration());
-            
-            // 대기 후 자동 출발
-            StartDeparture();
+            // 정박 시간 대기 시작
+            StartCoroutine(WaitForDockingDuration());
         }
         
+        /// <summary>
+        /// 정박 시간 대기
+        /// </summary>
         private IEnumerator WaitForDockingDuration()
         {
-            float dockingTimeInMinutes = 30f; // 정식 30분
-            float elapsedTimeInMinutes = 0f;
-            
-            DebugLog($"정박 대기 시작: {dockingTimeInMinutes}분 대기");
-            
-            // TimeSystem 참조 가져오기
-            TimeSystem timeSystem = TimeSystem.Instance;
-            if (timeSystem == null)
+            if (shipSystem == null)
             {
-                DebugLog("TimeSystem을 찾을 수 없습니다. 실제 시간으로 대기합니다.");
-                yield return new WaitForSeconds(30f); // 30초로 대체
-                DebugLog("정박 대기 완료 (실제 시간)");
+                DebugLog("ShipSystem 참조가 없습니다.", true);
                 yield break;
             }
             
-            float startTime = timeSystem.GetCurrentTimeInMinutes();
-            float targetTime = startTime + dockingTimeInMinutes;
-            
-            DebugLog($"정박 시작 시간: {startTime}분, 목표 시간: {targetTime}분");
-            
-            while (currentState == ShipState.Docked)
+            // TimeSystem을 통해 실제 게임 시간으로 대기
+            TimeSystem timeSystem = TimeSystem.Instance;
+            if (timeSystem == null)
             {
-                float currentTime = timeSystem.GetCurrentTimeInMinutes();
-                elapsedTimeInMinutes = currentTime - startTime;
-                
-                // 30분이 지났는지 확인
-                if (currentTime >= targetTime)
-                {
-                    DebugLog($"정박 대기 완료: {elapsedTimeInMinutes:F1}분 경과");
-                    break;
-                }
-                
-                // 1초마다 상태 체크
-                yield return new WaitForSeconds(1f);
+                DebugLog("TimeSystem을 찾을 수 없습니다.", true);
+                yield break;
             }
             
-            DebugLog("정박 대기 종료");
+            float dockingDurationMinutes = 30f; // 30분 정박
+            float startTime = timeSystem.GetCurrentTimeInMinutes();
+            float endTime = startTime + dockingDurationMinutes;
+            
+            DebugLog($"정박 대기 시작: {dockingDurationMinutes}분 (게임 시간)", true);
+            
+            // 게임 시간으로 대기
+            while (timeSystem.GetCurrentTimeInMinutes() < endTime)
+            {
+                // 게임이 일시정지되거나 시간 배속이 0이면 대기
+                if (timeSystem.timeMultiplier <= 0)
+                {
+                    yield return new WaitForSeconds(0.1f);
+                    continue;
+                }
+                
+                yield return new WaitForSeconds(0.1f);
+            }
+            
+            DebugLog("정박 시간 완료 - 출발 준비", true);
+            
+            // 자동으로 출발 시작
+            StartDeparture();
         }
         
+        /// <summary>
+        /// 출발 시퀀스
+        /// </summary>
         private IEnumerator DepartureSequence()
         {
-            DebugLog("출발 시퀀스 시작");
+            DebugLog("출발 시퀀스 시작", true);
             
-            // 출발 경로가 있는 경우
-            if (assignedRoute.departureWaypoints != null && assignedRoute.departureWaypoints.Count > 0)
+            // 출발 웨이포인트가 있는지 확인
+            if (assignedRoute.departureWaypoints == null || assignedRoute.departureWaypoints.Count == 0)
             {
-                DebugLog($"출발 경로 따라 이동: {assignedRoute.departureWaypoints.Count}개 웨이포인트");
+                DebugLog("출발 웨이포인트가 설정되지 않았습니다.", true);
                 
-                // 출발 경로를 따라 이동
-                for (int i = 0; i < assignedRoute.departureWaypoints.Count; i++)
+                // 출발 웨이포인트가 없으면 바로 비활성화
+                currentState = ShipState.Inactive;
+                hasCompletedRoute = true;
+                yield break;
+            }
+            
+            // 출발 웨이포인트들을 순서대로 이동
+            for (int i = 0; i < assignedRoute.departureWaypoints.Count; i++)
+            {
+                Transform departureWaypoint = assignedRoute.departureWaypoints[i];
+                if (departureWaypoint == null)
                 {
-                    if (assignedRoute.departureWaypoints[i] == null)
-                    {
-                        DebugLog($"출발 웨이포인트 {i}가 null입니다. 건너뜁니다.");
-                        continue;
-                    }
-                    
-                    Vector3 nextWaypoint = assignedRoute.GetDepartureWaypointPosition(i);
-                    nextWaypoint = new Vector3(nextWaypoint.x, 0.5f, nextWaypoint.z);
-                    
-                    Vector3 direction = (nextWaypoint - transform.position).normalized;
-                    Quaternion nextRotation = direction != Vector3.zero ? 
-                        Quaternion.LookRotation(direction) : transform.rotation;
-                    
-                    DebugLog($"출발 웨이포인트 DP{i}로 이동: {nextWaypoint}");
-                    yield return StartCoroutine(MoveToPosition(nextWaypoint, nextRotation));
-                    DebugLog($"출발 웨이포인트 DP{i} 도착 완료");
+                    DebugLog($"출발 웨이포인트 {i}가 null입니다.", true);
+                    continue;
                 }
-            }
-            else
-            {
-                DebugLog("출발 경로 없음 - 바다 방향으로 이동");
                 
-                // 출발 경로가 없는 경우 바다 방향으로 이동
-                Vector3 finalPosition = transform.position + transform.forward * 50f;
-                finalPosition = new Vector3(finalPosition.x, 0.5f, finalPosition.z);
-                DebugLog($"바다 방향으로 이동: {finalPosition}");
-                yield return StartCoroutine(MoveToPosition(finalPosition, transform.rotation));
+                Vector3 destination = departureWaypoint.position;
+                Vector3 direction = (destination - transform.position).normalized;
+                Quaternion targetRotation = direction != Vector3.zero ? Quaternion.LookRotation(direction) : transform.rotation;
+                
+                DebugLog($"출발 웨이포인트 {i}로 이동: {departureWaypoint.name}", showMovementLogs);
+                
+                yield return StartCoroutine(MoveToPosition(destination, targetRotation));
+                
+                // 각 웨이포인트 사이에 짧은 대기
+                yield return new WaitForSeconds(0.2f);
             }
+            
+            DebugLog("모든 출발 웨이포인트 통과 완료", true);
             
             // 출발 완료
             currentState = ShipState.Inactive;
-            DebugLog("출발 완료 - 디스폰 준비");
-        }
-        
-        // 시각적 효과 관련 메서드들 (나중에 활성화 가능)
-        /*
-        private void StartMovementEffects()
-        {
-            // 파티클 효과 시작
-            if (wakeEffect != null)
-            {
-                wakeEffect.Play();
-            }
+            hasCompletedRoute = true;
             
-            // 오디오 재생
-            if (shipAudio != null && !shipAudio.isPlaying)
-            {
-                shipAudio.Play();
-            }
+            DebugLog("출발 완료 - 배 비활성화", true);
         }
         
-        private void StopMovementEffects()
+        #region 디버그 메서드
+        
+        /// <summary>
+        /// 디버그 로그 출력
+        /// </summary>
+        private void DebugLog(string message, bool isImportant = false)
         {
-            // 파티클 효과 중지
-            if (wakeEffect != null)
-            {
-                wakeEffect.Stop();
-            }
+            if (!showDebugLogs) return;
             
-            // 오디오 중지
-            if (shipAudio != null && shipAudio.isPlaying)
-            {
-                shipAudio.Stop();
-            }
-        }
-        */
-        
-        private void DebugLog(string message)
-        {
-            Debug.Log($"[ShipController] {shipId}: {message}");
+            if (showImportantLogsOnly && !isImportant) return;
+            
+            Debug.Log($"[ShipController-{shipId[..8]}] {message}");
         }
         
+        /// <summary>
+        /// 기즈모 그리기 (씬 뷰에서 배 상태 시각화)
+        /// </summary>
         private void OnDrawGizmos()
         {
-            if (currentState == ShipState.Inactive) return;
+            if (assignedRoute == null) return;
             
-            // 현재 타겟 위치 표시
-            Gizmos.color = Color.yellow;
-            Gizmos.DrawWireSphere(targetPosition, 1f);
+            // 현재 상태에 따른 색상 설정
+            switch (currentState)
+            {
+                case ShipState.Moving:
+                    Gizmos.color = Color.green;
+                    break;
+                case ShipState.Docking:
+                    Gizmos.color = Color.yellow;
+                    break;
+                case ShipState.Docked:
+                    Gizmos.color = Color.red;
+                    break;
+                case ShipState.Departing:
+                    Gizmos.color = Color.blue;
+                    break;
+                default:
+                    Gizmos.color = Color.gray;
+                    break;
+            }
             
-            // 현재 위치에서 타겟까지 선 그리기
-            Gizmos.color = Color.red;
-            Gizmos.DrawLine(transform.position, targetPosition);
+            // 배 위치에 구체 그리기
+            Gizmos.DrawWireSphere(transform.position, 1f);
             
-            // 배 상태 표시
-            #if UNITY_EDITOR
-            UnityEditor.Handles.Label(transform.position + Vector3.up * 3f, 
-                $"{currentState}\nSpeed: {currentSpeed:F1}\nWP: {currentWaypointIndex}\nCompleted: {hasCompletedRoute}");
-            #endif
+            // 목표 위치까지 선 그리기
+            if (targetPosition != Vector3.zero)
+            {
+                Gizmos.DrawLine(transform.position, targetPosition);
+            }
         }
+        
+        #endregion
     }
     
     /// <summary>
-    /// 배의 상태
+    /// 배의 상태 열거형
     /// </summary>
     public enum ShipState
     {

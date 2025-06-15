@@ -6,13 +6,15 @@ using System.Linq;
 using JY;
 using UnityEngine.Animations;
 
-public interface IRoomDetector
+namespace JY
 {
-    GameObject[] GetDetectedRooms();
-    void DetectRooms();
-}
+    public interface IRoomDetector
+    {
+        GameObject[] GetDetectedRooms();
+        void DetectRooms();
+    }
 
-public class AIAgent : MonoBehaviour
+    public class AIAgent : MonoBehaviour
 {
     #region 비공개 변수
     private NavMeshAgent agent;                    // AI 이동 제어를 위한 네비메시 에이전트
@@ -1276,4 +1278,5 @@ public class AIAgent : MonoBehaviour
         }
     }
     #endregion
+    }
 }

@@ -4,7 +4,9 @@ using UnityEngine.AI;
 using System.Collections.Generic;
 using Unity.AI.Navigation;
 
-public class AutoNavMeshBaker : MonoBehaviour
+namespace JY
+{
+    public class AutoNavMeshBaker : MonoBehaviour
 {
     public NavMeshSurface _navsurface;
     
@@ -214,5 +216,6 @@ public class AutoNavMeshBaker : MonoBehaviour
         // 컴포넌트가 비활성화될 때 진행 중인 코루틴 정리
         StopAllCoroutines();
         isBaking = false;
+    }
     }
 }
