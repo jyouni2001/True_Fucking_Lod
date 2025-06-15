@@ -5,7 +5,7 @@ using JY;
 
 namespace JY
 {
-    public class CounterManager : MonoBehaviour
+public class CounterManager : MonoBehaviour
 {
     [Header("Queue Settings")]
     public float queueSpacing = 2f;           // AI 간격
@@ -273,7 +273,7 @@ namespace JY
                 Vector3 nextPos = transform.position + transform.forward * nextDistance;
                 Gizmos.DrawLine(queuePos, nextPos);
             }
+            }
         }
-    }
     }
 }

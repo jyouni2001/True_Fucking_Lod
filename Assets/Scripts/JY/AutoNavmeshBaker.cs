@@ -6,7 +6,7 @@ using Unity.AI.Navigation;
 
 namespace JY
 {
-    public class AutoNavMeshBaker : MonoBehaviour
+public class AutoNavMeshBaker : MonoBehaviour
 {
     public NavMeshSurface _navsurface;
     

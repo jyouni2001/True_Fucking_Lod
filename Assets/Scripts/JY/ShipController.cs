@@ -261,7 +261,7 @@ namespace JY
             
             // 다음 웨이포인트로 이동 또는 정박 시작
             yield return new WaitForSeconds(0.2f); // 짧은 대기
-            MoveToNextWaypoint();
+                MoveToNextWaypoint();
         }
         
         /// <summary>
@@ -371,7 +371,7 @@ namespace JY
                 DebugLog($"출발 웨이포인트 {i}로 이동: {departureWaypoint.name}", showMovementLogs);
                 
                 yield return StartCoroutine(MoveToPosition(destination, targetRotation));
-                
+            
                 // 각 웨이포인트 사이에 짧은 대기
                 yield return new WaitForSeconds(0.2f);
             }
@@ -413,7 +413,7 @@ namespace JY
                     Gizmos.color = Color.green;
                     break;
                 case ShipState.Docking:
-                    Gizmos.color = Color.yellow;
+            Gizmos.color = Color.yellow;
                     break;
                 case ShipState.Docked:
                     Gizmos.color = Color.red;
